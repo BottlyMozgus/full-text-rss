@@ -37,7 +37,13 @@ jobs:
 
       - name: Start fixture site on runner
         run: |
-          nohup python3 -m http.server 9988 --bind 0.0.0.0 --directory scripts/fixtures >/tmp/fixture.log 2>&1 &
+          # Article links must resolve from inside the container, so render the
+          # fixture with the host.docker.internal base the service will use.
+          mkdir -p "$RUNNER_TEMP/site"
+          for f in scripts/fixtures/*; do
+            sed "s#FIXTURE_HOST#http://host.docker.internal:9988#g" "$f" > "$RUNNER_TEMP/site/$(basename "$f")"
+          done
+          nohup python3 -m http.server 9988 --bind 0.0.0.0 --directory "$RUNNER_TEMP/site" >/tmp/fixture.log 2>&1 &
           sleep 1
           curl -sf http://127.0.0.1:9988/feed.xml >/dev/null
 

@@ -29,16 +29,27 @@ trap cleanup EXIT INT TERM
 
 fail() { echo "E2E FAIL: $1" >&2; exit 1; }
 
+# render_fixture DEST BASE copies scripts/fixtures to DEST, replacing the
+# FIXTURE_HOST placeholder so article links resolve for the service.
+render_fixture() {
+  mkdir -p "$1"
+  for f in scripts/fixtures/*; do
+    sed "s#FIXTURE_HOST#$2#g" "$f" > "$1/$(basename "$f")"
+  done
+}
+
 if [ -n "${E2E_TARGET:-}" ]; then
   BASE="$E2E_TARGET"
   echo "== target: $BASE (external) =="
+  echo "== note: fixture must be served by the caller from a rendered copy (see CI) =="
 else
   echo "== building binary =="
   BIN="$WORK/ftrss"
   go build -o "$BIN" ./cmd/full-text-rss
 
   echo "== fixture site =="
-  python3 -m http.server 9988 --bind 127.0.0.1 --directory scripts/fixtures >"$WORK/fixture.log" 2>&1 &
+  render_fixture "$WORK/site" "http://127.0.0.1:9988"
+  python3 -m http.server 9988 --bind 127.0.0.1 --directory "$WORK/site" >"$WORK/fixture.log" 2>&1 &
   PIDS="$PIDS $!"
   sleep 1
 
