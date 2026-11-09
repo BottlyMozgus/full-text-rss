@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Fixture News</title>
+    <link>http://127.0.0.1:9988/</link>
+    <description>Test articles for e2e</description>
+    <item>
+      <title>First Clean Article</title>
+      <link>http://127.0.0.1:9988/article-a.html</link>
+      <guid>fixture-a</guid>
+      <pubDate>Mon, 09 Nov 2026 06:00:00 GMT</pubDate>
+      <description>Short summary of the first article.</description>
+    </item>
+    <item>
+      <title>Messy Layout Article</title>
+      <link>http://127.0.0.1:9988/article-b.html</link>
+      <guid>fixture-b</guid>
+      <pubDate>Mon, 09 Nov 2026 05:30:00 GMT</pubDate>
+      <description>Summary that needs a site rule.</description>
+    </item>
+    <item>
+      <title>Broken Extraction Article</title>
+      <link>http://127.0.0.1:9988/missing-404.html</link>
+      <guid>fixture-c</guid>
+      <pubDate>Mon, 09 Nov 2026 05:00:00 GMT</pubDate>
+      <description>This one fails extraction and must fall back.</description>
+    </item>
+  </channel>
+</rss>

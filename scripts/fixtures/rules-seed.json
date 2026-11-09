@@ -1,0 +1,7 @@
+{
+  "host": "127.0.0.1",
+  "content_selector": "#real-content",
+  "strip_selectors": [".byline"],
+  "rewrite_from": "",
+  "rewrite_to": ""
+}
