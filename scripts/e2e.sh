@@ -6,14 +6,16 @@ cd "$(dirname "$0")/.."
 ROOT="$PWD"
 
 echo "== building =="
-go build -o /tmp/opencode/ftrss-test ./cmd/full-text-rss
+BIN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ftrss-e2e.XXXXXX")"
+BIN="$BIN_DIR/ftrss-test"
+go build -o "$BIN" ./cmd/full-text-rss
 
 echo "== fixture site =="
 sh scripts/fixture-server.sh 9988 &
 FIXPID=$!
 sleep 1
 
-DATA="$(mktemp -d /tmp/opencode/ftrss-data.XXXXXX)"
+DATA="$(mktemp -d "$BIN_DIR/data.XXXXXX")"
 export FTRSS_ADMIN_PASSWORD=devpass
 export FTRSS_ADDR=127.0.0.1:9977
 export FTRSS_DATA_DIR="$DATA"
@@ -22,13 +24,13 @@ export FTRSS_FETCH_JITTER=10ms
 export FTRSS_FETCH_TIMEOUT=5s
 
 echo "== starting server =="
-/tmp/opencode/ftrss-test >"$DATA/server.log" 2>&1 &
+"$BIN" >"$DATA/server.log" 2>&1 &
 SRVPID=$!
 sleep 1
 
 cleanup() {
   kill "$SRVPID" 2>/dev/null || true
-  kill 0 2>/dev/null || true
+  kill "$FIXPID" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
@@ -104,7 +106,7 @@ echo "on-demand OK"
 echo "== persistence across restart =="
 kill "$SRVPID" 2>/dev/null || true
 sleep 1
-/tmp/opencode/ftrss-test >>"$DATA/server.log" 2>&1 &
+"$BIN" >>"$DATA/server.log" 2>&1 &
 SRVPID=$!
 sleep 1
 code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:9977/feed/$TOKEN.xml")
