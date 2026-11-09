@@ -35,6 +35,7 @@ Required config (env vars):
 | `FTRSS_FETCH_SPACING` | `2s` | Min spacing between fetches to the same host. |
 | `FTRSS_FETCH_JITTER` | `3s` | Extra random delay per fetch (0 = off). |
 | `FTRSS_USER_AGENT` | `rss-scraper/1.0 ...` | User-Agent for fetches. |
+| `FTRSS_FALLBACK_IMAGE` | (none) | Absolute `http(s)` image URL used for items that have no image of their own. When unset, a built-in placeholder is served from `/static/img/fallback.png`. |
 
 ## Local development
 
