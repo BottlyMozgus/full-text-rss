@@ -1,8 +1,8 @@
 name: dependabot-auto-merge
 
-# Enables auto-merge for Dependabot PRs that bump minor or patch versions.
-# The PR still has to pass the required CI checks before GitHub merges it.
-# Major bumps are left for a human to review.
+# Enables auto-merge for every Dependabot PR, including major bumps.
+# GitHub merges only after the required checks (test, docker-e2e) pass, so a
+# major bump that breaks the build or e2e never lands.
 
 on:
   pull_request:
@@ -22,8 +22,7 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Enable auto-merge for minor and patch updates
-        if: steps.meta.outputs.update-type == 'version-update:semver-minor' || steps.meta.outputs.update-type == 'version-update:semver-patch'
+      - name: Enable auto-merge
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
