@@ -169,7 +169,7 @@ func (e *Extractor) extractWithReadability(body []byte, pageURL string) (string,
 	if strings.TrimSpace(art.Content) == "" {
 		return "", "", errors.New("readability produced empty content")
 	}
-	return art.Content, art.Title, nil
+	return restoreFigureImages(body, pageURL, art.Content), art.Title, nil
 }
 
 // newDoc parses body into a goquery document. A <base href> in the document
