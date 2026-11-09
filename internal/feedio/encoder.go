@@ -39,7 +39,7 @@ const (
 	fallbackComment = "<!--summary-fallback-->"
 
 	// generatorTag identifies the producing software in the channel.
-	generatorTag = "full-text-rss"
+	generatorTag = "rss-scraper"
 )
 
 // ContentType is the HTTP Content-Type for RSS 2.0 output.

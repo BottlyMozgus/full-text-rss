@@ -1,5 +1,5 @@
 #!/bin/sh
-# End-to-end checks for full-text-rss.
+# End-to-end checks for rss-scraper.
 #
 # Modes:
 #   sh scripts/e2e.sh                 build the binary, start it locally, test it
@@ -45,7 +45,7 @@ if [ -n "${E2E_TARGET:-}" ]; then
 else
   echo "== building binary =="
   BIN="$WORK/ftrss"
-  go build -o "$BIN" ./cmd/full-text-rss
+  go build -o "$BIN" ./cmd/rss-scraper
 
   echo "== fixture site =="
   render_fixture "$WORK/site" "http://127.0.0.1:9988"

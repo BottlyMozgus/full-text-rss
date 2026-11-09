@@ -1,7 +1,7 @@
 services:
-  full-text-rss:
+  rss-scraper:
     build: .
-    container_name: full-text-rss
+    container_name: rss-scraper
     restart: unless-stopped
     ports:
       - "8080:8080"

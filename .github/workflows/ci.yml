@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build image
-        run: docker build -t full-text-rss:ci .
+        run: docker build -t rss-scraper:ci .
 
       - name: Set up jq and python
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq python3 >/dev/null
@@ -62,7 +62,7 @@ jobs:
             -e FTRSS_FETCH_JITTER=10ms \
             -e FTRSS_FETCH_TIMEOUT=5s \
             -v "$RUNNER_TEMP/ftrss-data:/data" \
-            full-text-rss:ci
+            rss-scraper:ci
 
       - name: Run e2e against container
         env:

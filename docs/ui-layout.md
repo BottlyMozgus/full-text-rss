@@ -1,4 +1,4 @@
-# full-text-rss — UI layout notes (for implementation)
+# rss-scraper — UI layout notes (for implementation)
 
 Overall feel: dense, utilitarian admin tool (think Miniflux). Light theme only.
 System font stack. No framework — plain server-rendered HTML + minimal vanilla JS

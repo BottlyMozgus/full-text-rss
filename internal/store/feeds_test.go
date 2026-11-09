@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // openTestStore opens a fresh SQLite database in a temp directory.

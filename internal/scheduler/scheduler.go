@@ -21,10 +21,10 @@ import (
 
 	"github.com/mmcdole/gofeed"
 
-	"full-text-rss/internal/config"
-	"full-text-rss/internal/extract"
-	"full-text-rss/internal/model"
-	"full-text-rss/internal/store"
+	"rss-scraper/internal/config"
+	"rss-scraper/internal/extract"
+	"rss-scraper/internal/model"
+	"rss-scraper/internal/store"
 )
 
 const (

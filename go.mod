@@ -1,4 +1,4 @@
-module full-text-rss
+module rss-scraper
 
 go 1.26.0
 

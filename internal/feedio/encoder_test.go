@@ -87,8 +87,8 @@ func TestToRSSRoundTrip(t *testing.T) {
 	if f.Description != out.Description {
 		t.Errorf("channel description = %q, want %q", f.Description, out.Description)
 	}
-	if f.Generator != "full-text-rss" {
-		t.Errorf("generator = %q, want full-text-rss", f.Generator)
+	if f.Generator != "rss-scraper" {
+		t.Errorf("generator = %q, want rss-scraper", f.Generator)
 	}
 	if len(f.Items) != 3 {
 		t.Fatalf("item count = %d, want 3", len(f.Items))
@@ -174,7 +174,7 @@ func TestToRSSNamespaces(t *testing.T) {
 		`<rss version="2.0"`,
 		"<content:encoded>",
 		"<lastBuildDate>Mon, 09 Nov 2026 10:00:00 +0000</lastBuildDate>",
-		"<generator>full-text-rss</generator>",
+		"<generator>rss-scraper</generator>",
 	} {
 		if !strings.Contains(s, want) {
 			t.Errorf("raw XML missing %q:\n%s", want, s)

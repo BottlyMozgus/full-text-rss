@@ -1,7 +1,7 @@
 > **Working spec:** `/workspace/interview/full-text-rss-feed-generator-k7d2f4.md` (status: complete).
 > Read it before implementing. The summary below is context only; the spec wins on conflicts.
 
-# full-text-rss
+# rss-scraper
 
 Self-hosted Go service (single binary) converting RSS/Atom feeds into
 full-text feeds. Saved feeds are served privately at `/feed/<token>.xml`;
@@ -12,7 +12,7 @@ with per-host rate limiting.
 ## Layout
 
 ```
-cmd/full-text-rss/     main: config load, store open, server + scheduler start
+cmd/rss-scraper/     main: config load, store open, server + scheduler start
 internal/config/       env-var config (DONE - see config.go)
 internal/model/        domain types: Feed, SiteRule, Item (DONE)
 internal/store/        SQLite (modernc.org/sqlite, pure Go) + migrations/

@@ -16,8 +16,8 @@ import (
 
 	"github.com/mmcdole/gofeed"
 
-	"full-text-rss/internal/feedio"
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/feedio"
+	"rss-scraper/internal/model"
 )
 
 // onDemandItemLimit caps how many articles the on-demand endpoint extracts

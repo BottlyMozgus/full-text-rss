@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // generateToken returns 32 hex chars from crypto/rand.

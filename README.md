@@ -1,4 +1,4 @@
-# full-text-rss
+# rss-scraper
 
 Self-hosted Go service that converts RSS/Atom feeds into **full-text feeds**:
 it fetches every article, extracts the main content (Readability + per-site
@@ -34,14 +34,14 @@ Required config (env vars):
 | `FTRSS_FETCH_TIMEOUT` | `20s` | Per-article fetch timeout. |
 | `FTRSS_FETCH_SPACING` | `2s` | Min spacing between fetches to the same host. |
 | `FTRSS_FETCH_JITTER` | `3s` | Extra random delay per fetch (0 = off). |
-| `FTRSS_USER_AGENT` | `full-text-rss/1.0 ...` | User-Agent for fetches. |
+| `FTRSS_USER_AGENT` | `rss-scraper/1.0 ...` | User-Agent for fetches. |
 
 ## Local development
 
 ```sh
 go build ./...
 go test ./...
-FTRSS_ADMIN_PASSWORD=dev ./full-text-rss
+FTRSS_ADMIN_PASSWORD=dev ./rss-scraper
 ```
 
 ## Routes

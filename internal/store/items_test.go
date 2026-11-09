@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 func mkFeed(t *testing.T, s *Store) int64 {

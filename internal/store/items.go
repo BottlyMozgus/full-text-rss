@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // encodeCategories joins categories comma-separated for storage. A category

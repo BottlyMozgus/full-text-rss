@@ -1,4 +1,4 @@
-// Package server implements the HTTP layer of full-text-rss: session
+// Package server implements the HTTP layer of rss-scraper: session
 // authentication, the admin UI, the JSON API, private token feed delivery,
 // and the on-demand feed converter.
 package server
@@ -10,10 +10,10 @@ import (
 	"io/fs"
 	"net/http"
 
-	"full-text-rss/internal/config"
-	"full-text-rss/internal/extract"
-	"full-text-rss/internal/store"
-	"full-text-rss/internal/webassets"
+	"rss-scraper/internal/config"
+	"rss-scraper/internal/extract"
+	"rss-scraper/internal/store"
+	"rss-scraper/internal/webassets"
 )
 
 // Page is the layout dot shape from the templates README. renderPage passes

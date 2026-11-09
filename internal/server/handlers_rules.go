@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // rulesListDot builds the rules_list content dot (the template consumes

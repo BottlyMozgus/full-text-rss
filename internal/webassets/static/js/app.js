@@ -1,4 +1,4 @@
-// full-text-rss admin: optional enhancements only. Pages work without JS.
+// rss-scraper admin: optional enhancements only. Pages work without JS.
 (function () {
   'use strict';
 

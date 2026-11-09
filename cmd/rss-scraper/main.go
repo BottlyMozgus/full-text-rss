@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"full-text-rss/internal/config"
-	"full-text-rss/internal/scheduler"
-	"full-text-rss/internal/server"
-	"full-text-rss/internal/store"
+	"rss-scraper/internal/config"
+	"rss-scraper/internal/scheduler"
+	"rss-scraper/internal/server"
+	"rss-scraper/internal/store"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 		_ = httpSrv.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("full-text-rss listening on %s (data: %s)", cfg.Addr, cfg.DataDir)
+	log.Printf("rss-scraper listening on %s (data: %s)", cfg.Addr, cfg.DataDir)
 	if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
 	}

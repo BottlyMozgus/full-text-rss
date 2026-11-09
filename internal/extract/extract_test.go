@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"full-text-rss/internal/config"
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/config"
+	"rss-scraper/internal/model"
 )
 
 func testConfig(spacing, jitter time.Duration) *config.Config {
@@ -19,7 +19,7 @@ func testConfig(spacing, jitter time.Duration) *config.Config {
 		FetchTimeout: 5 * time.Second,
 		FetchSpacing: spacing,
 		FetchJitter:  jitter,
-		UserAgent:    "full-text-rss-test/1.0",
+		UserAgent:    "rss-scraper-test/1.0",
 	}
 }
 
@@ -42,7 +42,7 @@ func TestFetchSuccessAndUserAgent(t *testing.T) {
 	if !strings.Contains(string(body), "hi") {
 		t.Fatalf("body = %q, want page content", body)
 	}
-	if gotUA != "full-text-rss-test/1.0" {
+	if gotUA != "rss-scraper-test/1.0" {
 		t.Errorf("User-Agent = %q, want configured value", gotUA)
 	}
 	if gotAccept == "" {

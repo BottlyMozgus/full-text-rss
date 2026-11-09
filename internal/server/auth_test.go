@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"full-text-rss/internal/config"
-	"full-text-rss/internal/model"
-	"full-text-rss/internal/store"
+	"rss-scraper/internal/config"
+	"rss-scraper/internal/model"
+	"rss-scraper/internal/store"
 )
 
 // testServer builds a Server over a fresh store with password "pw" and

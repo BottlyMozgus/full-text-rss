@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 func TestAPIRulesLifecycle(t *testing.T) {

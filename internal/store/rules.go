@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // encodeStripSelectors joins strip selectors newline-separated for storage.

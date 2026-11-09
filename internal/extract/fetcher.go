@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"full-text-rss/internal/config"
+	"rss-scraper/internal/config"
 )
 
 // Exported errors.

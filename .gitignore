@@ -1,5 +1,5 @@
-/full-text-rss
-/full-text-rss-test
+/rss-scraper
+/rss-scraper-test
 *.db
 *.db-wal
 *.db-shm

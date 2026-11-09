@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 func TestUpsertSiteRuleInsertAndUpdate(t *testing.T) {

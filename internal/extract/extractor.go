@@ -12,7 +12,7 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // Result is the outcome of a successful extraction.

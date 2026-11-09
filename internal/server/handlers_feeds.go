@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // intervalOptions are the selectable refresh intervals for the feed form.

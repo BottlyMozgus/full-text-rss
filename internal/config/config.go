@@ -47,7 +47,7 @@ func Load() (*Config, error) {
 		FetchTimeout:   envDuration("FTRSS_FETCH_TIMEOUT", 20*time.Second),
 		FetchJitter:    envDuration("FTRSS_FETCH_JITTER", 3*time.Second),
 		FetchSpacing:   envDuration("FTRSS_FETCH_SPACING", 2*time.Second),
-		UserAgent:      env("FTRSS_USER_AGENT", "full-text-rss/1.0 (+self-hosted; respectful fetcher)"),
+		UserAgent:      env("FTRSS_USER_AGENT", "rss-scraper/1.0 (+self-hosted; respectful fetcher)"),
 	}
 	if cfg.AdminPassword == "" && cfg.AdminToken == "" {
 		return nil, fmt.Errorf("FTRSS_ADMIN_PASSWORD or FTRSS_ADMIN_TOKEN must be set")

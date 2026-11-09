@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"full-text-rss/internal/model"
+	"rss-scraper/internal/model"
 )
 
 // JSON shapes mirror the model types; durations are plain seconds so the
