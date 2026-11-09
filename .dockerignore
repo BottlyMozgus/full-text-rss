@@ -1,0 +1,10 @@
+.git
+.gitignore
+*.db
+*.db-wal
+*.db-shm
+/data/
+full-text-rss
+full-text-rss-test
+web/static/demo.html
+docs/
