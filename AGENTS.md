@@ -72,8 +72,12 @@ for changes to HTTP, feed output, extraction, or the scheduler.
   `*.db`, and `/data/`.
 - `master` is protected. Changes land by pull request, and the required checks
   `test` and `docker-e2e` must pass. Don't push to master directly.
-- Dependabot opens dependency PRs. Its auto-merge workflow merges them once the
-  required checks pass, including major bumps.
+- Auto-merge is for Dependabot PRs only. `dependabot-auto-merge.yml` enables it
+  for PRs opened by `dependabot[bot]`, including major bumps, once the required
+  checks pass.
+- All other PRs (human or agent) are merged by the repo owner. Do not enable
+  auto-merge on them, and do not merge them yourself unless the owner asks.
+  Opening the PR and reporting its check results is the agent's job.
 
 ## CI and publishing
 
