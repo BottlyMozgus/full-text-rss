@@ -64,7 +64,6 @@ func TestAPICreateFeedValidation(t *testing.T) {
 		want int
 	}{
 		{`{"title":"no url","refresh_every_seconds":60}`, http.StatusBadRequest},
-		{`{"source_url":"https://x.example/f.xml","refresh_every_seconds":0}`, http.StatusBadRequest},
 		{`{"source_url":"https://x.example/f.xml","refresh_every_seconds":-5}`, http.StatusBadRequest},
 		{`not json`, http.StatusBadRequest},
 	}

@@ -128,8 +128,13 @@ func (s *Server) apiListFeeds(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-// feedInput is the accepted create/update payload. RefreshEverySeconds is
-// required (0 rejected); Title optional.
+// defaultRefreshSeconds is the spec default (60 minutes) used when a client
+// omits refresh_every_seconds.
+const defaultRefreshSeconds int64 = 3600
+
+// feedInput is the accepted create/update payload. RefreshEverySeconds
+// defaults to 60 minutes when omitted or zero; negative values are rejected.
+// Title optional.
 type feedInput struct {
 	SourceURL           string `json:"source_url"`
 	Title               string `json:"title"`
@@ -142,8 +147,11 @@ func applyFeedInput(in feedInput) (*model.Feed, string) {
 	if strings.TrimSpace(in.SourceURL) == "" {
 		return nil, "source_url is required"
 	}
-	if in.RefreshEverySeconds <= 0 {
-		return nil, "refresh_every_seconds must be a positive number"
+	if in.RefreshEverySeconds < 0 {
+		return nil, "refresh_every_seconds must not be negative"
+	}
+	if in.RefreshEverySeconds == 0 {
+		in.RefreshEverySeconds = defaultRefreshSeconds
 	}
 	return &model.Feed{
 		SourceURL:    strings.TrimSpace(in.SourceURL),
