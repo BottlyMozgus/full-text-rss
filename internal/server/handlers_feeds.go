@@ -343,7 +343,8 @@ type itemPreviewDot struct {
 		Title       string
 		URL         string
 		Author      string
-		ContentHTML template.HTML
+		ContentHTML template.HTML // rendered pane, pre-sanitized
+		RawHTML     string        // code pane, escaped by html/template
 	}
 }
 
@@ -371,6 +372,7 @@ func (s *Server) handleItemPreview(w http.ResponseWriter, r *http.Request) (any,
 	dot.Item.URL = it.URL
 	dot.Item.Author = it.Author
 	dot.Item.ContentHTML = template.HTML(it.ContentHTML) // pre-sanitized
+	dot.Item.RawHTML = it.ContentHTML                    // escaped in code pane
 	return dot, nil
 }
 
