@@ -4,7 +4,7 @@
 *.db-wal
 *.db-shm
 /data/
-full-text-rss
-full-text-rss-test
+/full-text-rss
+/full-text-rss-test
 internal/webassets/static/demo.html
 docs/

@@ -1,5 +1,5 @@
-full-text-rss
-full-text-rss-test
+/full-text-rss
+/full-text-rss-test
 *.db
 *.db-wal
 *.db-shm
