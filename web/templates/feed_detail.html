@@ -1,0 +1,53 @@
+{{define "feed_detail"}}
+<p class="backlink"><a href="/admin/feeds">&larr; Feeds</a></p>
+<div class="detail-head">
+  <h1>{{if .Feed.Title}}{{.Feed.Title}}{{else}}Untitled feed{{end}}</h1>
+  <p class="status-line">
+    <span class="mono muted">{{.Feed.SourceURL}}</span>
+  </p>
+  <p class="status-line">
+    {{if .Feed.LastRefresh.Valid}}
+      <span class="dot {{if eq .Feed.LastStatus "ok"}}dot-ok{{else}}dot-error{{end}}"></span>
+      Last refresh {{relTime .Feed.LastRefresh.Time}}
+      {{if ne .Feed.LastStatus "ok"}}<span class="field-error">{{.Feed.LastError}}</span>{{end}}
+    {{else}}
+      <span class="dot dot-pending dot-pulse"></span> Never refreshed
+    {{end}}
+  </p>
+  <div class="btn-row">
+    <form method="post" action="/admin/feeds/{{.Feed.ID}}/refresh">
+      <button type="submit" class="btn btn-primary">Refresh now</button>
+    </form>
+    <a class="btn" href="/admin/feeds/{{.Feed.ID}}/edit">Edit</a>
+  </div>
+</div>
+
+<h2>Items</h2>
+{{if not .Items}}
+<div class="empty">No items fetched yet. <a href="/admin/feeds/{{.Feed.ID}}/refresh">Refresh now</a> to fetch articles.</div>
+{{else}}
+<table class="list">
+  <thead>
+    <tr>
+      <th scope="col">Title</th>
+      <th scope="col">State</th>
+      <th scope="col">Fetched</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Items}}
+    <tr class="rowlink" data-href="/admin/feeds/{{$.Feed.ID}}/items/{{.ID}}">
+      <td><a href="/admin/feeds/{{$.Feed.ID}}/items/{{.ID}}">{{.Title}}</a></td>
+      <td>
+        {{if eq .State "extracted"}}<span class="badge badge-extracted">extracted</span>
+        {{else if eq .State "summary-fallback"}}<span class="badge badge-fallback">summary-fallback</span>
+        {{else}}<span class="badge badge-pending">pending</span>{{end}}
+        {{if .Details}}<div class="muted small">{{.Details}}</div>{{end}}
+      </td>
+      <td>{{if .FetchedAt.Valid}}{{relTime .FetchedAt.Time}}{{else}}<span class="muted">&mdash;</span>{{end}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}
+{{end}}

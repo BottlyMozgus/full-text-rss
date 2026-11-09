@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo · Full-Text RSS</title>
+<link rel="stylesheet" href="../static/css/style.css">
+<style>
+/* demo-only: neutralize fake forms/links so nothing navigates */
+.demo-note {
+  background: #fffbe6;
+  border: 1px solid #e6d90a;
+  border-left: 4px solid #e6d90a;
+  padding: 6px 12px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#">Full-Text RSS</a>
+  <nav aria-label="Main">
+    <a href="#" class="active">Feeds</a>
+    <a href="#">Rules</a>
+    <a href="#">On-demand</a>
+  </nav>
+  <div class="spacer"></div>
+  <button type="button" class="btn btn-sm">Logout</button>
+</header>
+<main class="page">
+<div class="demo-note">Static demo, fake data. Controls are inert; density, dots, badges are the real styles.</div>
+
+<hgroup class="page-head">
+  <h1>Feeds</h1>
+  <div class="actions"><a class="btn btn-primary" href="#">Add feed</a></div>
+</hgroup>
+<table class="list">
+  <thead>
+    <tr>
+      <th scope="col">Title</th>
+      <th scope="col">Source URL</th>
+      <th scope="col">Interval</th>
+      <th scope="col">Last refresh</th>
+      <th scope="col">Errors</th>
+      <th scope="col"><span class="visually-hidden">Actions</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="rowlink">
+      <td><a href="#">Example Blog</a></td>
+      <td class="muted cell-truncate"><span class="mono">https://example.com/feed.xml</span></td>
+      <td class="mono">60m</td>
+      <td><span class="dot dot-ok"></span>2m ago</td>
+      <td><span class="muted">&mdash;</span></td>
+      <td>
+        <button type="button" class="btn btn-sm">Refresh</button>
+        <button type="button" class="btn btn-sm">Edit</button>
+        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+      </td>
+    </tr>
+    <tr class="rowlink">
+      <td><a href="#">News Site</a></td>
+      <td class="muted cell-truncate"><span class="mono">https://news.example.org/rss</span></td>
+      <td class="mono">3h</td>
+      <td><span class="dot dot-error"></span>3h ago</td>
+      <td><span class="warncount" title="502 Bad Gateway from origin">1</span></td>
+      <td>
+        <button type="button" class="btn btn-sm">Refresh</button>
+        <button type="button" class="btn btn-sm">Edit</button>
+        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+      </td>
+    </tr>
+    <tr class="rowlink">
+      <td><a href="#">Never-fetched feed</a></td>
+      <td class="muted cell-truncate"><span class="mono">https://slow.example.net/atom.xml</span></td>
+      <td class="mono">24h</td>
+      <td><span class="dot dot-pending dot-pulse"></span><span class="muted">never</span></td>
+      <td><span class="muted">&mdash;</span></td>
+      <td>
+        <button type="button" class="btn btn-sm">Refresh</button>
+        <button type="button" class="btn btn-sm">Edit</button>
+        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<hgroup class="page-head" style="margin-top:40px">
+  <h1>Example Blog</h1>
+  <div class="btn-row">
+    <button type="button" class="btn btn-primary">Refresh now</button>
+    <a class="btn" href="#">Edit</a>
+  </div>
+</hgroup>
+<p class="status-line"><span class="mono muted">https://example.com/feed.xml</span></p>
+<p class="status-line"><span class="dot dot-error"></span>Last refresh 3h ago <span class="field-error">502 Bad Gateway from origin</span></p>
+
+<h2>Items</h2>
+<table class="list">
+  <thead>
+    <tr>
+      <th scope="col">Title</th>
+      <th scope="col">State</th>
+      <th scope="col">Fetched</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="rowlink">
+      <td><a href="#">Article one</a></td>
+      <td><span class="badge badge-extracted">extracted</span></td>
+      <td>12m ago</td>
+    </tr>
+    <tr class="rowlink">
+      <td><a href="#">Article two</a></td>
+      <td><span class="badge badge-fallback">summary-fallback</span></td>
+      <td>12m ago</td>
+    </tr>
+    <tr class="rowlink">
+      <td><a href="#">Article three</a></td>
+      <td><span class="badge badge-pending">pending</span></td>
+      <td>&mdash;</td>
+    </tr>
+  </tbody>
+</table>
+</main>
+</body>
+</html>

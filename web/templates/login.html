@@ -1,0 +1,27 @@
+{{define "login"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Full-Text RSS</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-box">
+    <h1>Full-Text RSS</h1>
+    {{if .Error}}<div class="flash flash-error" role="alert">{{.Error}}</div>{{end}}
+    <form method="post" action="/login">
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autofocus autocomplete="current-password" required>
+        {{if .Error}}<p class="field-error">Wrong password.</p>{{end}}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Sign in</button>
+      </div>
+    </form>
+  </div>
+</div>
+</body>
+</html>{{end}}

@@ -1,0 +1,21 @@
+{{define "item_preview"}}
+<p class="backlink"><a href="/admin/feeds/{{.Feed.ID}}">&larr; {{if .Feed.Title}}{{.Feed.Title}}{{else}}Feed{{end}}</a></p>
+<div class="detail-head">
+  <h1>{{.Item.Title}}</h1>
+  <p class="status-line">
+    {{if .Item.URL}}<a href="{{.Item.URL}}" rel="noreferrer">{{.Item.URL}}</a>{{end}}
+    {{if .Item.Author}} &middot; {{.Item.Author}}{{end}}
+  </p>
+</div>
+
+<div class="preview-grid">
+  <section class="preview-pane">
+    <div class="pane-label">Rendered</div>
+    <div class="pane-body article-html">{{.Item.ContentHTML}}</div>
+  </section>
+  <section class="preview-pane">
+    <div class="pane-label">Raw HTML</div>
+    <pre class="raw-html"><code>{{.Item.ContentHTML}}</code></pre>
+  </section>
+</div>
+{{end}}

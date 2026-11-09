@@ -1,0 +1,19 @@
+{{define "ondemand"}}
+<hgroup class="page-head"><h1>On-demand</h1></hgroup>
+<form method="get" action="/on-demand" class="stack">
+  <div class="field">
+    <label for="url">Feed URL</label>
+    <input type="url" id="url" name="url" placeholder="https://example.com/feed.xml" required>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Generate</button>
+  </div>
+</form>
+<div class="usage-note">
+  <p>The form navigates to <code>/on-demand?url=&lt;feed-url&gt;</code>, which returns the converted RSS.
+  Point your reader at that URL directly:</p>
+  <p><code>http://your-host/on-demand?url=https://example.com/feed.xml</code></p>
+  <p>On-demand results are not saved. For recurring use, add the feed on the
+  <a href="/admin/feeds/new">Feeds page</a> instead.</p>
+</div>
+{{end}}

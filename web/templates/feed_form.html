@@ -1,0 +1,54 @@
+{{define "feed_form_new"}}
+<hgroup class="page-head">
+  <h1>Add feed</h1>
+</hgroup>
+<form method="post" action="/admin/feeds/new" class="stack">
+  {{template "feed_fields" .}}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn" href="/admin/feeds">Cancel</a>
+  </div>
+</form>
+{{end}}
+
+{{define "feed_form_edit"}}
+<hgroup class="page-head">
+  <h1>Edit feed</h1>
+</hgroup>
+<p class="feedurl">
+  <span class="muted small">Feed URL:</span>
+  <code id="feed-url">{{.FeedURL}}</code>
+  <button type="button" class="btn btn-sm" data-copy="#feed-url">Copy</button>
+</p>
+<form method="post" action="/admin/feeds/{{.Feed.ID}}/edit" class="stack">
+  {{template "feed_fields" .}}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn" href="/admin/feeds/{{.Feed.ID}}">Cancel</a>
+  </div>
+</form>
+<form method="post" action="/admin/feeds/{{.Feed.ID}}/delete" data-confirm="Delete this feed? This removes its items.">
+  <button type="submit" class="btn btn-danger">Delete</button>
+</form>
+{{end}}
+
+{{define "feed_fields"}}
+<div class="field">
+  <label for="source_url">Source URL</label>
+  <input type="text" id="source_url" name="source_url" value="{{.Feed.SourceURL}}" required>
+  <p class="hint">RSS or Atom feed to convert to full text.</p>
+</div>
+<div class="field">
+  <label for="title">Title</label>
+  <input type="text" id="title" name="title" value="{{.Feed.Title}}" placeholder="auto from feed">
+</div>
+<div class="field">
+  <label for="refresh_every">Refresh interval</label>
+  <select id="refresh_every" name="refresh_every">
+    {{$cur := .Feed.RefreshEvery}}
+    {{range .IntervalOptions}}
+    <option value="{{.Value}}"{{if eq .Value $cur}} selected{{end}}>{{.Label}}</option>
+    {{end}}
+  </select>
+</div>
+{{end}}

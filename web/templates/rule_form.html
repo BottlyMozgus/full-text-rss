@@ -1,0 +1,51 @@
+{{define "rule_form_new"}}
+<hgroup class="page-head"><h1>Add rule</h1></hgroup>
+<p class="hint">Rules override Readability for the given host suffix.</p>
+<form method="post" action="/admin/rules/new" class="stack">
+  {{template "rule_fields" .}}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn" href="/admin/rules">Cancel</a>
+  </div>
+</form>
+{{end}}
+
+{{define "rule_form_edit"}}
+<hgroup class="page-head"><h1>Edit rule</h1></hgroup>
+<form method="post" action="/admin/rules/{{.Rule.ID}}/edit" class="stack">
+  {{template "rule_fields" .}}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn" href="/admin/rules">Cancel</a>
+  </div>
+</form>
+<form method="post" action="/admin/rules/{{.Rule.ID}}/delete" data-confirm="Delete rule for {{.Rule.Host}}?">
+  <button type="submit" class="btn btn-danger">Delete</button>
+</form>
+{{end}}
+
+{{define "rule_fields"}}
+<div class="field">
+  <label for="host">Host</label>
+  <input type="text" id="host" name="host" value="{{.Rule.Host}}" placeholder="example.com" required>
+  <p class="hint">Matches by host suffix, e.g. "example.com" also covers "www.example.com".</p>
+</div>
+<div class="field">
+  <label for="content_selector">Content selector</label>
+  <input type="text" id="content_selector" name="content_selector" value="{{.Rule.ContentSelector}}" placeholder="article.post">
+</div>
+<div class="field">
+  <label for="strip_selectors">Strip selectors</label>
+  <textarea id="strip_selectors" name="strip_selectors">{{range .Rule.StripSelectors}}{{.}}
+{{end}}</textarea>
+  <p class="hint">One CSS selector per line. Removed before extraction.</p>
+</div>
+<div class="field">
+  <label for="rewrite_from">URL rewrite from</label>
+  <input type="text" id="rewrite_from" name="rewrite_from" value="{{.Rule.URLRewriteFrom}}" placeholder="optional substring">
+</div>
+<div class="field">
+  <label for="rewrite_to">URL rewrite to</label>
+  <input type="text" id="rewrite_to" name="rewrite_to" value="{{.Rule.URLRewriteTo}}" placeholder="replacement">
+</div>
+{{end}}

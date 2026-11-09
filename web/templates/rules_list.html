@@ -1,0 +1,44 @@
+{{define "rules_list"}}
+<hgroup class="page-head">
+  <h1>Rules</h1>
+  <div class="actions"><a class="btn btn-primary" href="/admin/rules/new">Add rule</a></div>
+</hgroup>
+
+{{if not .Rules}}
+<div class="empty">No rules. <a href="/admin/rules/new">Add a rule</a> to override Readability for a site.</div>
+{{else}}
+<table class="list">
+  <thead>
+    <tr>
+      <th scope="col">Host</th>
+      <th scope="col">Content selector</th>
+      <th scope="col">Strip selectors</th>
+      <th scope="col">URL rewrite</th>
+      <th scope="col"><span class="visually-hidden">Actions</span></th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Rules}}
+    <tr>
+      <td class="mono">{{.Host}}</td>
+      <td>{{if .ContentSelector}}<code>{{.ContentSelector}}</code>{{else}}<span class="muted">&mdash;</span>{{end}}</td>
+      <td>{{if .StripSelectors}}{{len .StripSelectors}}{{else}}<span class="muted">&mdash;</span>{{end}}</td>
+      <td>
+        {{if .URLRewriteFrom}}
+          <span class="mono">{{.URLRewriteFrom}} &rarr; {{.URLRewriteTo}}</span>
+        {{else}}<span class="muted">&mdash;</span>{{end}}
+      </td>
+      <td>
+        <div class="btn-row">
+          <a class="btn btn-sm" href="/admin/rules/{{.ID}}/edit">Edit</a>
+          <form method="post" action="/admin/rules/{{.ID}}/delete" data-confirm="Delete rule for {{.Host}}?">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}
+{{end}}

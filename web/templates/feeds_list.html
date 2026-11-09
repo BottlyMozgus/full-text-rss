@@ -1,0 +1,51 @@
+{{define "feeds_list"}}
+<hgroup class="page-head">
+  <h1>Feeds</h1>
+  <div class="actions"><a class="btn btn-primary" href="/admin/feeds/new">Add feed</a></div>
+</hgroup>
+
+{{if not .Feeds}}
+<div class="empty">No feeds yet. <a href="/admin/feeds/new">Add your first feed.</a></div>
+{{else}}
+<table class="list">
+  <thead>
+    <tr>
+      <th scope="col">Title</th>
+      <th scope="col">Source URL</th>
+      <th scope="col">Interval</th>
+      <th scope="col">Last refresh</th>
+      <th scope="col">Errors</th>
+      <th scope="col"><span class="visually-hidden">Actions</span></th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Feeds}}
+    <tr class="rowlink" data-href="/admin/feeds/{{.ID}}">
+      <td><a href="/admin/feeds/{{.ID}}">{{if .Title}}{{.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</a></td>
+      <td class="muted cell-truncate"><span class="mono">{{.SourceURL}}</span></td>
+      <td class="mono">{{.IntervalLabel}}</td>
+      <td>
+        {{if .LastRefresh.Valid}}
+          <span class="dot {{if eq .LastStatus "ok"}}dot-ok{{else}}dot-error{{end}}"></span>{{relTime .LastRefresh.Time}}
+        {{else}}
+          <span class="dot dot-pending dot-pulse"></span><span class="muted">never</span>
+        {{end}}
+      </td>
+      <td>{{if and .LastRefresh.Valid (ne .LastStatus "ok")}}<span class="warncount" title="{{.LastError}}">1</span>{{else}}<span class="muted">&mdash;</span>{{end}}</td>
+      <td>
+        <div class="btn-row">
+          <form method="post" action="/admin/feeds/{{.ID}}/refresh">
+            <button type="submit" class="btn btn-sm">Refresh</button>
+          </form>
+          <a class="btn btn-sm" href="/admin/feeds/{{.ID}}/edit">Edit</a>
+          <form method="post" action="/admin/feeds/{{.ID}}/delete" data-confirm="Delete feed &quot;{{.Title}}&quot;? This removes its items.">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}
+{{end}}

@@ -1,0 +1,28 @@
+{{define "base"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{block "title" .}}Full-Text RSS{{end}} · Full-Text RSS</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/app.js" defer></script>
+</head>
+<body>
+{{if .Authed}}<header class="topbar">
+  <a class="brand" href="/admin/feeds">Full-Text RSS</a>
+  <nav aria-label="Main">
+    <a href="/admin/feeds"{{if eq .ActiveNav "feeds"}} class="active"{{end}}>Feeds</a>
+    <a href="/admin/rules"{{if eq .ActiveNav "rules"}} class="active"{{end}}>Rules</a>
+    <a href="/admin/ondemand"{{if eq .ActiveNav "ondemand"}} class="active"{{end}}>On-demand</a>
+  </nav>
+  <div class="spacer"></div>
+  <form method="post" action="/logout" class="inline-form">
+    <button type="submit" class="btn btn-sm topbar-logout">Logout</button>
+  </form>
+</header>{{end}}
+<main class="page">
+{{if .Flash}}<div class="flash{{if .FlashError}} flash-error{{end}}" role="status">{{.Flash}}</div>{{end}}
+{{block "content" .}}{{end}}
+</main>
+</body>
+</html>{{end}}
