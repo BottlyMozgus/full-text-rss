@@ -1,118 +1,151 @@
 #!/bin/sh
-# End-to-end smoke test: fixture site + built binary + curl checks.
-# Usage: scripts/e2e.sh
-set -e
+# End-to-end checks for full-text-rss.
+#
+# Modes:
+#   sh scripts/e2e.sh                 build the binary, start it locally, test it
+#   E2E_TARGET=http://host:port sh scripts/e2e.sh
+#                                     test an already-running instance (e.g. a
+#                                     container). Caller must start the fixture
+#                                     site and make it reachable as E2E_FIXTURE_BASE.
+#
+# Env:
+#   E2E_TARGET        base URL of the running service (skips build/start)
+#   E2E_PASSWORD      admin password for the target (default devpass)
+#   E2E_FIXTURE_BASE  base URL the SERVICE uses to reach the fixture site
+#                     (default http://127.0.0.1:9988)
+set -eu
 cd "$(dirname "$0")/.."
-ROOT="$PWD"
 
-echo "== building =="
-BIN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ftrss-e2e.XXXXXX")"
-BIN="$BIN_DIR/ftrss-test"
-go build -o "$BIN" ./cmd/full-text-rss
-
-echo "== fixture site =="
-sh scripts/fixture-server.sh 9988 &
-FIXPID=$!
-sleep 1
-
-DATA="$(mktemp -d "$BIN_DIR/data.XXXXXX")"
-export FTRSS_ADMIN_PASSWORD=devpass
-export FTRSS_ADDR=127.0.0.1:9977
-export FTRSS_DATA_DIR="$DATA"
-export FTRSS_FETCH_SPACING=10ms
-export FTRSS_FETCH_JITTER=10ms
-export FTRSS_FETCH_TIMEOUT=5s
-
-echo "== starting server =="
-"$BIN" >"$DATA/server.log" 2>&1 &
-SRVPID=$!
-sleep 1
+PASSWORD="${E2E_PASSWORD:-devpass}"
+FIXTURE_BASE="${E2E_FIXTURE_BASE:-http://127.0.0.1:9988}"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/ftrss-e2e.XXXXXX")"
+PIDS=""
 
 cleanup() {
-  kill "$SRVPID" 2>/dev/null || true
-  kill "$FIXPID" 2>/dev/null || true
+  for p in $PIDS; do kill "$p" 2>/dev/null || true; done
+  rm -rf "$WORK"
 }
 trap cleanup EXIT INT TERM
 
-fail() { echo "E2E FAIL: $1"; exit 1; }
+fail() { echo "E2E FAIL: $1" >&2; exit 1; }
+
+if [ -n "${E2E_TARGET:-}" ]; then
+  BASE="$E2E_TARGET"
+  echo "== target: $BASE (external) =="
+else
+  echo "== building binary =="
+  BIN="$WORK/ftrss"
+  go build -o "$BIN" ./cmd/full-text-rss
+
+  echo "== fixture site =="
+  python3 -m http.server 9988 --bind 127.0.0.1 --directory scripts/fixtures >"$WORK/fixture.log" 2>&1 &
+  PIDS="$PIDS $!"
+  sleep 1
+
+  echo "== starting server =="
+  mkdir -p "$WORK/data"
+  FTRSS_ADMIN_PASSWORD="$PASSWORD" \
+  FTRSS_ADDR=127.0.0.1:9977 \
+  FTRSS_DATA_DIR="$WORK/data" \
+  FTRSS_FETCH_SPACING=10ms FTRSS_FETCH_JITTER=10ms FTRSS_FETCH_TIMEOUT=5s \
+    "$BIN" >"$WORK/server.log" 2>&1 &
+  SRVPID=$!
+  PIDS="$PIDS $SRVPID"
+  BASE="http://127.0.0.1:9977"
+  sleep 1
+fi
+
+wait_healthy() {
+  i=0
+  while [ "$i" -lt 30 ]; do
+    if curl -sf "$BASE/healthz" >/dev/null 2>&1; then return 0; fi
+    i=$((i + 1)); sleep 1
+  done
+  fail "service did not become healthy at $BASE"
+}
+wait_healthy
+
+COOKIES="$WORK/cookies.txt"
 
 echo "== health =="
-curl -sf http://127.0.0.1:9977/healthz | grep -q ok || fail "healthz"
+curl -sf "$BASE/healthz" | grep -q ok || fail "healthz"
 
 echo "== auth =="
-code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:9977/admin/feeds)
-[ "$code" = "302" ] || fail "unauthed /admin/feeds expected 302, got $code"
-curl -sf -c "$DATA/cookies.txt" -d "password=devpass" http://127.0.0.1:9977/login >/dev/null || fail "login POST"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$DATA/cookies.txt" http://127.0.0.1:9977/admin/feeds)
+code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/admin/feeds")
+case "$code" in 302|303) ;; *) fail "unauthed /admin/feeds expected redirect, got $code" ;; esac
+curl -sf -c "$COOKIES" -d "password=$PASSWORD" "$BASE/login" >/dev/null || fail "login POST"
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" "$BASE/admin/feeds")
 [ "$code" = "200" ] || fail "authed /admin/feeds expected 200, got $code"
 
 echo "== create feed via API =="
-FEEDJSON=$(curl -sf -b "$DATA/cookies.txt" -H "Content-Type: application/json" \
-  -d '{"source_url":"http://127.0.0.1:9988/feed.xml","title":"Fixture Feed"}' \
-  http://127.0.0.1:9977/api/feeds) || fail "create feed"
+FEEDJSON=$(curl -sf -b "$COOKIES" -H "Content-Type: application/json" \
+  -d "{\"source_url\":\"$FIXTURE_BASE/feed.xml\",\"title\":\"Fixture Feed\"}" \
+  "$BASE/api/feeds") || fail "create feed"
 FEEDID=$(echo "$FEEDJSON" | jq -r .id)
 TOKEN=$(echo "$FEEDJSON" | jq -r .token)
 [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || fail "no token in response"
-echo "feed id=$FEEDID token=$TOKEN"
+echo "feed id=$FEEDID"
 
-echo "== trigger refresh =="
-curl -sf -b "$DATA/cookies.txt" -X POST http://127.0.0.1:9977/api/feeds/$FEEDID/refresh >/dev/null || fail "refresh"
-sleep 2
-
-echo "== status =="
-STATUS=$(curl -sf -b "$DATA/cookies.txt" http://127.0.0.1:9977/api/feeds/$FEEDID/status)
-echo "$STATUS" | jq -r '.last_status, (.items[] | "\(.guid) -> \(.state)")'
+echo "== refresh and wait for status =="
+curl -sf -b "$COOKIES" -X POST "$BASE/api/feeds/$FEEDID/refresh" >/dev/null || fail "refresh"
+i=0
+while [ "$i" -lt 30 ]; do
+  ST=$(curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status" | jq -r .last_status)
+  [ "$ST" = "ok" ] && break
+  i=$((i + 1)); sleep 1
+done
+STATUS=$(curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status")
+echo "$STATUS" | jq -r '.last_status, (.items[]? | "\(.guid) -> \(.state)")'
 echo "$STATUS" | jq -e '.last_status == "ok"' >/dev/null || fail "feed not ok"
+echo "$STATUS" | jq -e '[.items[]? | select(.state=="extracted")] | length >= 2' >/dev/null || fail "expected >=2 extracted items"
+echo "$STATUS" | jq -e '[.items[]? | select(.state=="summary-fallback")] | length >= 1' >/dev/null || fail "expected >=1 summary-fallback item"
 
 echo "== served feed XML =="
-code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:9977/feed/$TOKEN.xml")
+code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/feed/$TOKEN.xml")
 [ "$code" = "200" ] || fail "token feed expected 200, got $code"
-curl -sf "http://127.0.0.1:9977/feed/$TOKEN.xml" > "$DATA/feed-out.xml"
-grep -q "xmlns:content" "$DATA/feed-out.xml" || fail "content namespace missing"
-grep -q "summary-fallback" "$DATA/feed-out.xml" || fail "fallback comment missing"
-grep -q "full body of the first article" "$DATA/feed-out.xml" || fail "extracted content missing"
-grep -q "actual content lives in this div" "$DATA/feed-out.xml" || fail "rule-based content missing"
-! grep -qi "<script" "$DATA/feed-out.xml" || fail "script leaked into output"
-grep -q "This one fails extraction" "$DATA/feed-out.xml" || fail "fallback summary missing"
-echo "XML checks passed ($(wc -c < "$DATA/feed-out.xml") bytes)"
+curl -sf "$BASE/feed/$TOKEN.xml" > "$WORK/feed-out.xml"
+grep -q "xmlns:content" "$WORK/feed-out.xml" || fail "content namespace missing"
+grep -q "summary-fallback" "$WORK/feed-out.xml" || fail "fallback comment missing"
+grep -q "full body of the first article" "$WORK/feed-out.xml" || fail "extracted content missing"
+grep -q "actual content lives in this div" "$WORK/feed-out.xml" || fail "rule-based content missing"
+! grep -qi "<script" "$WORK/feed-out.xml" || fail "script leaked into output"
+grep -q "This one fails extraction" "$WORK/feed-out.xml" || fail "fallback summary missing"
+echo "XML checks passed ($(wc -c < "$WORK/feed-out.xml") bytes)"
 
 echo "== wrong token 404 =="
-code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:9977/feed/deadbeef000000000000000000000000.xml")
+code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/feed/deadbeef000000000000000000000000.xml")
 [ "$code" = "404" ] || fail "wrong token expected 404, got $code"
 
 echo "== ETag/304 =="
-ETAG=$(curl -sfI "http://127.0.0.1:9977/feed/$TOKEN.xml" | tr -d '\r' | awk 'tolower($1)=="etag:"{print $2}')
-if [ -n "$ETAG" ]; then
-  code=$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: $ETAG" "http://127.0.0.1:9977/feed/$TOKEN.xml")
-  [ "$code" = "304" ] || fail "If-None-Match expected 304, got $code"
-else
-  echo "WARN: no ETag header"
-fi
+ETAG=$(curl -sfI "$BASE/feed/$TOKEN.xml" | tr -d '\r' | awk 'tolower($1)=="etag:"{print $2}')
+[ -n "$ETAG" ] || fail "no ETag header"
+code=$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: $ETAG" "$BASE/feed/$TOKEN.xml")
+[ "$code" = "304" ] || fail "If-None-Match expected 304, got $code"
 
 echo "== admin pages =="
 for p in /admin/feeds "/admin/feeds/$FEEDID" /admin/feeds/new /admin/rules /admin/rules/new /admin/ondemand; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" -b "$DATA/cookies.txt" "http://127.0.0.1:9977$p")
+  code=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" "$BASE$p")
   [ "$code" = "200" ] || fail "GET $p expected 200, got $code"
 done
-ITEMPREVIEW=$(curl -sf -b "$DATA/cookies.txt" "http://127.0.0.1:9977/admin/feeds/$FEEDID" | grep -o 'href="[^"]*/items/[0-9]*"' | head -1 | sed 's/href="//;s/"$//')
-[ -n "$ITEMPREVIEW" ] && code=$(curl -s -o /dev/null -w "%{http_code}" -b "$DATA/cookies.txt" "http://127.0.0.1:9977$ITEMPREVIEW") && [ "$code" = "200" ] || echo "WARN: no item preview link found"
 
 echo "== on-demand endpoint =="
-curl -sf -b "$DATA/cookies.txt" "http://127.0.0.1:9977/on-demand?url=http%3A%2F%2F127.0.0.1%3A9988%2Ffeed.xml" > "$DATA/ondemand.xml"
-grep -q "actual content lives in this div" "$DATA/ondemand.xml" || fail "on-demand rule content missing"
-grep -q "summary-fallback" "$DATA/ondemand.xml" || fail "on-demand fallback missing"
-echo "on-demand OK"
+curl -sf -b "$COOKIES" "$BASE/on-demand?url=$(printf '%s' "$FIXTURE_BASE/feed.xml" | jq -sRr @uri)" > "$WORK/ondemand.xml" || fail "on-demand request"
+grep -q "actual content lives in this div" "$WORK/ondemand.xml" || fail "on-demand rule content missing"
+grep -q "summary-fallback" "$WORK/ondemand.xml" || fail "on-demand fallback missing"
 
-echo "== persistence across restart =="
-kill "$SRVPID" 2>/dev/null || true
-sleep 1
-"$BIN" >>"$DATA/server.log" 2>&1 &
-SRVPID=$!
-sleep 1
-code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:9977/feed/$TOKEN.xml")
-[ "$code" = "200" ] || fail "feed after restart expected 200, got $code"
-curl -sf "http://127.0.0.1:9977/feed/$TOKEN.xml" | grep -q "full body of the first article" || fail "content lost after restart"
-echo "restart persistence OK"
+echo "== persistence across restart (local mode only) =="
+if [ -z "${E2E_TARGET:-}" ]; then
+  kill "$SRVPID" 2>/dev/null || true
+  sleep 1
+  FTRSS_ADMIN_PASSWORD="$PASSWORD" FTRSS_ADDR=127.0.0.1:9977 FTRSS_DATA_DIR="$WORK/data" \
+    "$BIN" >>"$WORK/server.log" 2>&1 &
+  PIDS="$PIDS $!"
+  wait_healthy
+  curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "full body of the first article" || fail "content lost after restart"
+  echo "restart persistence OK"
+else
+  echo "skipped (external target)"
+fi
 
 echo ""
 echo "E2E PASS"

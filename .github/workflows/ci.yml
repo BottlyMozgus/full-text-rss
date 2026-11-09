@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: vet
+        run: go vet ./...
+      - name: unit tests
+        run: go test -race -count=1 ./...
+
+  docker-e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t full-text-rss:ci .
+
+      - name: Set up jq and python
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq python3 >/dev/null
+
+      - name: Start fixture site on runner
+        run: |
+          nohup python3 -m http.server 9988 --bind 0.0.0.0 --directory scripts/fixtures >/tmp/fixture.log 2>&1 &
+          sleep 1
+          curl -sf http://127.0.0.1:9988/feed.xml >/dev/null
+
+      - name: Create data dir owned by container user (uid 568)
+        run: |
+          mkdir -p "$RUNNER_TEMP/ftrss-data"
+          sudo chown -R 568:568 "$RUNNER_TEMP/ftrss-data"
+
+      - name: Run container
+        run: |
+          docker run -d --name ftrss \
+            -p 127.0.0.1:9977:8080 \
+            --add-host=host.docker.internal:host-gateway \
+            -e FTRSS_ADMIN_PASSWORD=devpass \
+            -e FTRSS_FETCH_SPACING=10ms \
+            -e FTRSS_FETCH_JITTER=10ms \
+            -e FTRSS_FETCH_TIMEOUT=5s \
+            -v "$RUNNER_TEMP/ftrss-data:/data" \
+            full-text-rss:ci
+
+      - name: Run e2e against container
+        env:
+          E2E_TARGET: http://127.0.0.1:9977
+          E2E_PASSWORD: devpass
+          # The container reaches the runner's fixture server via the host gateway.
+          E2E_FIXTURE_BASE: http://host.docker.internal:9988
+        run: sh scripts/e2e.sh
+
+      - name: Container logs
+        if: failure()
+        run: docker logs ftrss || true
+
+      - name: Fixture log
+        if: failure()
+        run: cat /tmp/fixture.log || true
