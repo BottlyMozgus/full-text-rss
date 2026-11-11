@@ -120,8 +120,8 @@ func TestOpenUpgradesUnversionedDatabase(t *testing.T) {
 		if err := s.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 			t.Fatalf("pass %d user_version: %v", pass, err)
 		}
-		if version != 3 {
-			t.Errorf("pass %d user_version = %d, want 3", pass, version)
+		if version != 4 {
+			t.Errorf("pass %d user_version = %d, want 4", pass, version)
 		}
 		if err := s.Close(); err != nil {
 			t.Fatalf("pass %d Close: %v", pass, err)
