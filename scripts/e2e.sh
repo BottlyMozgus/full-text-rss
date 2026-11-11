@@ -92,8 +92,8 @@ echo "== create feed via API =="
 FEEDJSON=$(curl -sf -b "$COOKIES" -H "Content-Type: application/json" \
   -d "{\"source_url\":\"$FIXTURE_BASE/feed.xml\",\"title\":\"Fixture Feed\"}" \
   "$BASE/api/feeds") || fail "create feed"
-FEEDID=$(echo "$FEEDJSON" | jq -r .id)
-TOKEN=$(echo "$FEEDJSON" | jq -r .token)
+FEEDID=$(printf '%s\n' "$FEEDJSON" | jq -r .id)
+TOKEN=$(printf '%s\n' "$FEEDJSON" | jq -r .token)
 [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || fail "no token in response"
 echo "feed id=$FEEDID"
 
@@ -106,10 +106,10 @@ while [ "$i" -lt 30 ]; do
   i=$((i + 1)); sleep 1
 done
 STATUS=$(curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status")
-echo "$STATUS" | jq -r '.last_status, (.items[]? | "\(.guid) -> \(.state)")'
-echo "$STATUS" | jq -e '.last_status == "ok"' >/dev/null || fail "feed not ok"
-echo "$STATUS" | jq -e '[.items[]? | select(.state=="extracted")] | length >= 2' >/dev/null || fail "expected >=2 extracted items"
-echo "$STATUS" | jq -e '[.items[]? | select(.state=="summary-fallback")] | length >= 1' >/dev/null || fail "expected >=1 summary-fallback item"
+printf '%s\n' "$STATUS" | jq -r '.last_status, (.items[]? | "\(.guid) -> \(.state)")'
+printf '%s\n' "$STATUS" | jq -e '.last_status == "ok"' >/dev/null || fail "feed not ok"
+printf '%s\n' "$STATUS" | jq -e '[.items[]? | select(.state=="extracted")] | length >= 2' >/dev/null || fail "expected >=2 extracted items"
+printf '%s\n' "$STATUS" | jq -e '[.items[]? | select(.state=="summary-fallback")] | length >= 1' >/dev/null || fail "expected >=1 summary-fallback item"
 
 echo "== served feed XML =="
 code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/feed/$TOKEN.xml")
@@ -140,7 +140,7 @@ set_max_items() {
     -d "{\"source_url\":\"$FIXTURE_BASE/feed.xml\",\"title\":\"Fixture Feed\",\"max_items\":$1}" \
     "$BASE/api/feeds/$FEEDID" | jq -e ".max_items == $1" >/dev/null
 }
-echo "$FEEDJSON" | jq -e '.max_items == 20' >/dev/null || fail "default max_items is not 20"
+printf '%s\n' "$FEEDJSON" | jq -e '.max_items == 20' >/dev/null || fail "default max_items is not 20"
 ALL=$(count_items)
 [ "$ALL" -ge 3 ] || fail "expected >=3 items before limiting, got $ALL"
 set_max_items 1 || fail "set max_items=1"
@@ -174,11 +174,11 @@ grep -qi "real-content" "$WORK/frame.html" || fail "frame lost the article conte
 PREVIEW=$(curl -sf -b "$COOKIES" -H "Content-Type: application/json" \
   -d "{\"url\":\"$ARTICLE\",\"content_selector\":\"#real-content\",\"strip_selectors\":[\".sidebar\"]}" \
   "$BASE/admin/rules/picker/preview") || fail "picker preview"
-echo "$PREVIEW" | jq -e '.error == ""' >/dev/null || fail "preview reported error: $(echo "$PREVIEW" | jq -r .error)"
-echo "$PREVIEW" | jq -r .html | grep -q "actual content lives in this div" || fail "preview html lost content"
-echo "$PREVIEW" | jq -r .html | grep -q "Related junk" && fail "preview html kept stripped element"
-echo "$PREVIEW" | jq -e '.mode == "rule"' >/dev/null || fail "preview mode not rule"
-echo "$PREVIEW" | jq -e '.content_matches == 1 and .strip_matches[0] == 1' >/dev/null || fail "preview match counts wrong: $(echo "$PREVIEW" | jq -c '{content_matches, strip_matches}')"
+printf '%s\n' "$PREVIEW" | jq -e '.error == ""' >/dev/null || fail "preview reported error: $(printf '%s\n' "$PREVIEW" | jq -r .error)"
+printf '%s\n' "$PREVIEW" | jq -r .html | grep -q "actual content lives in this div" || fail "preview html lost content"
+printf '%s\n' "$PREVIEW" | jq -r .html | grep -q "Related junk" && fail "preview html kept stripped element"
+printf '%s\n' "$PREVIEW" | jq -e '.mode == "rule"' >/dev/null || fail "preview mode not rule"
+printf '%s\n' "$PREVIEW" | jq -e '.content_matches == 1 and .strip_matches[0] == 1' >/dev/null || fail "preview match counts wrong: $(printf '%s\n' "$PREVIEW" | jq -c '{content_matches, strip_matches}')"
 
 # Preview rejects wrong content type.
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" -H "Content-Type: text/plain" -d '{}' "$BASE/admin/rules/picker/preview")
