@@ -1,0 +1,124 @@
+{{define "rule_picker"}}
+{{if not .URL}}
+<div class="page-head"><h1>Rule picker</h1></div>
+<p class="hint">Open an article, click the parts to keep or drop, and save the selectors as the site rule.</p>
+<form method="get" action="/admin/rules/picker" class="stack">
+  <div class="field">
+    <label for="url">Article URL</label>
+    <input type="url" id="url" name="url" placeholder="https://example.com/some-article" required>
+  </div>
+  <input type="hidden" name="return" value="{{.Return}}">
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Open</button>
+    <a class="btn" href="{{if .Return}}{{.Return}}{{else}}/admin/rules{{end}}">Cancel</a>
+  </div>
+</form>
+{{else}}
+<div class="page-head">
+  <div class="picker-title">
+    <h1>Rule picker</h1>
+    <p class="status-line">Picking for <span class="mono">{{.Host}}</span> from <a href="{{.URL}}" rel="noreferrer">{{.URL}}</a></p>
+  </div>
+  <div class="actions"><a class="btn" href="{{if .Return}}{{.Return}}{{else}}/admin/rules{{end}}">Back</a></div>
+</div>
+
+<div class="picker" data-picker data-preview-url="{{.PreviewURL}}">
+  <div class="picker-frame-wrap">
+    {{if .FrameSrc}}<iframe id="picker-frame" class="picker-frame" src="{{.FrameSrc}}" sandbox="allow-same-origin" title="Article page. Click an element to include it, Alt-click or Shift-click to exclude it."></iframe>{{end}}
+    <div id="picker-frame-msg" class="picker-frame-msg" role="alert"{{if .FrameSrc}} hidden{{end}}>{{if not .FrameSrc}}The article could not be opened. Check the URL, or type selectors by hand and use the form.{{end}}</div>
+  </div>
+
+  <div class="picker-side">
+    <section class="picker-block" aria-labelledby="picker-h-rule">
+      <h2 id="picker-h-rule">Current rule</h2>
+      {{if .RuleExists}}
+      <p class="picker-rule-state"><span class="badge badge-fallback">Exists</span> A rule for <code>{{.Host}}</code> already exists. Saving replaces it.</p>
+      {{else}}
+      <p class="picker-rule-state"><span class="badge badge-pending">New</span> No rule yet for <code>{{.Host}}</code>.</p>
+      {{end}}
+    </section>
+
+    <section class="picker-block" aria-labelledby="picker-h-pick">
+      <h2 id="picker-h-pick">Pick</h2>
+      <noscript><p class="hint">JavaScript is off, so clicking in the article and the live preview are unavailable. Type the selectors in the fields below and save.</p></noscript>
+      <div data-js-only hidden>
+        <ol class="picker-steps">
+          <li>Click the element that holds the article text to <strong>include</strong> it.</li>
+          <li>Click junk inside it (ads, share bars) to <strong>exclude</strong> it. Alt-click or Shift-click excludes at any time.</li>
+          <li>Check the preview, then save.</li>
+        </ol>
+        <div class="picker-tools">
+          <fieldset class="picker-mode">
+            <legend>Click action</legend>
+            <label><input type="radio" name="picker_mode" value="include" checked> Include</label>
+            <label><input type="radio" name="picker_mode" value="exclude"> Exclude</label>
+          </fieldset>
+          <div class="btn-row">
+            <button type="button" class="btn btn-sm" data-picker-preview>Preview</button>
+            <button type="button" class="btn btn-sm" data-picker-reset>Reset</button>
+          </div>
+        </div>
+        <p class="picker-lastpick" data-picker-lastpick hidden>
+          <span class="muted">Last pick:</span> <code data-picker-lastpick-sel></code>
+          <button type="button" class="btn btn-sm" data-picker-parent>Select parent</button>
+        </p>
+        <p class="picker-status small muted" role="status" aria-live="polite" data-picker-status></p>
+      </div>
+    </section>
+
+    <section class="picker-block" aria-labelledby="picker-h-sel" data-js-only hidden>
+      <h2 id="picker-h-sel">Selectors</h2>
+      <div class="picker-list" id="picker-list" tabindex="-1" data-picker-list></div>
+    </section>
+
+    <section class="preview-pane picker-preview" aria-labelledby="picker-h-prev" data-js-only hidden>
+      <div class="pane-label picker-preview-head">
+        <span id="picker-h-prev">Preview</span>
+        <span class="badge" data-picker-mode hidden></span>
+        <span class="picker-preview-len" data-picker-length></span>
+      </div>
+      <p class="picker-preview-matches small muted" data-picker-matches hidden></p>
+      <p class="picker-preview-error" role="alert" data-picker-error hidden></p>
+      <div class="pane-body picker-preview-body" data-picker-previewbody>
+        <h3 class="picker-preview-title" data-picker-title hidden></h3>
+        <div class="article-html" data-picker-html aria-live="polite" tabindex="0"></div>
+      </div>
+    </section>
+
+    <section class="picker-block" aria-labelledby="picker-h-save">
+      <h2 id="picker-h-save">Save rule</h2>
+      <form method="post" action="/admin/rules/picker" class="stack" data-picker-form>
+        <input type="hidden" name="url" value="{{.URL}}">
+        <input type="hidden" name="return" value="{{.Return}}">
+        <input type="hidden" name="rewrite_from" value="{{.RewriteFrom}}">
+        <input type="hidden" name="rewrite_to" value="{{.RewriteTo}}">
+        {{if .ItemID}}<input type="hidden" name="item_id" value="{{.ItemID}}">{{end}}
+        <div class="field">
+          <label for="picker-host">Host</label>
+          <input type="text" id="picker-host" name="host" value="{{.Host}}" required>
+          <p class="hint">Matches by host suffix.</p>
+        </div>
+        <div class="field">
+          <label for="picker-content">Content selector</label>
+          <input type="text" id="picker-content" name="content_selector" value="{{.ContentSelector}}" placeholder="article.post" spellcheck="false" autocomplete="off">
+          <p class="hint">The element that holds the article. Empty lets Readability decide.</p>
+        </div>
+        <div class="field">
+          <label for="picker-strips">Strip selectors</label>
+          <textarea id="picker-strips" name="strip_selectors" spellcheck="false" autocomplete="off">{{range .StripSelectors}}{{.}}
+{{end}}</textarea>
+          <p class="hint">One CSS selector per line. Removed before extraction.</p>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save rule</button>
+          <a class="btn" href="{{if .Return}}{{.Return}}{{else}}/admin/rules{{end}}">Cancel</a>
+        </div>
+        {{if .ItemID}}<p class="hint">Saving also re-extracts the item you came from.</p>{{end}}
+      </form>
+    </section>
+  </div>
+
+</div>
+<script src="/static/js/picker.js" defer></script>
+{{end}}
+{{end}}

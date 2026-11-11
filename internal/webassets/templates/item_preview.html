@@ -1,5 +1,5 @@
 {{define "item_preview"}}
-<p class="backlink"><a href="/admin/feeds/{{.Feed.ID}}">&larr; {{if .Feed.Title}}{{.Feed.Title}}{{else}}Feed{{end}}</a></p>
+<p class="backlink"><a href="/admin/feeds/{{.Feed.ID}}">&larr; {{if .Feed.Title}}{{.Feed.Title}}{{else}}Feed{{end}}</a>{{if .Item.URL}} &middot; <a class="btn btn-sm" href="/admin/rules/picker?item={{.Item.ID}}">Pick rule</a>{{end}}</p>
 <div class="detail-head">
   <h1>{{.Item.Title}}</h1>
   <p class="status-line">

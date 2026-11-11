@@ -33,6 +33,7 @@
 <div class="field">
   <label for="content_selector">Content selector</label>
   <input type="text" id="content_selector" name="content_selector" value="{{.Rule.ContentSelector}}" placeholder="article.post">
+  {{if not .Rule.ID}}<p class="hint">Tip: build selectors visually with the <a href="/admin/rules/picker">rule picker</a>.</p>{{end}}
 </div>
 <div class="field">
   <label for="strip_selectors">Strip selectors</label>

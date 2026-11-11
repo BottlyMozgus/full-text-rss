@@ -437,3 +437,157 @@ textarea { min-height: 84px; resize: vertical; }
   .page { padding: 14px 10px 40px; }
   .cell-truncate { max-width: 140px; }
 }
+
+/* ---- rule picker ---- */
+
+.page:has(.picker) { max-width: 1400px; }
+
+.picker-title .status-line { margin: 2px 0 0; overflow-wrap: anywhere; }
+
+.picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.picker-frame-wrap { position: sticky; top: 8px; }
+
+.picker-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+@media (max-width: 900px) {
+  .picker { grid-template-columns: 1fr; }
+  .picker-frame-wrap { position: static; }
+}
+
+.picker-frame-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.picker-frame {
+  display: block;
+  width: 100%;
+  height: 78vh;
+  min-height: 70vh;
+  border: 0;
+  background: #fff;
+}
+
+.picker-frame[hidden] { display: none; }
+
+.picker-frame-msg {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--danger-dark);
+  border-top: 3px solid var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.picker-frame-msg[hidden] { display: none; }
+
+.picker-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 14px 14px;
+  min-width: 0;
+}
+
+.picker-block h2 { margin: 12px 0 8px; }
+
+.picker-block[hidden], [data-js-only][hidden] { display: none; }
+
+.picker-rule-state { margin: 0; }
+
+.picker-steps { margin: 0 0 10px; padding-left: 18px; font-size: 13px; }
+.picker-steps li { margin-bottom: 3px; }
+
+.picker-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+}
+
+.picker-mode {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+}
+
+.picker-mode legend {
+  float: left;
+  padding: 0;
+  margin-right: 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.picker-mode label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+
+.picker-lastpick { margin: 10px 0 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.picker-lastpick[hidden] { display: none; }
+.picker-status { margin: 8px 0 0; min-height: 18px; }
+
+.picker-list { display: flex; flex-direction: column; gap: 6px; }
+
+.picker-sel {
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 3px;
+  padding: 5px 8px;
+}
+
+.picker-sel-include { border-left-color: var(--ok); }
+.picker-sel-exclude { border-left-color: var(--danger); }
+
+.picker-sel-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.picker-sel-row code { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
+.picker-sel-count { white-space: nowrap; }
+.picker-warn { color: var(--danger-dark); font-weight: 600; }
+.picker-sel-err { margin: 4px 0 0; font-size: 12px; color: var(--danger-dark); overflow-wrap: anywhere; }
+
+.badge-error { background: #fee2e2; color: #991b1b; }
+
+.picker-preview[hidden] { display: none; }
+
+.picker-preview-head { display: flex; align-items: center; gap: 8px; }
+.picker-preview-len { margin-left: auto; font-variant-numeric: tabular-nums; text-transform: none; letter-spacing: 0; }
+
+.picker-preview-matches { margin: 0; padding: 6px 12px 0; }
+
+.picker-preview-error {
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--danger-dark);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.picker-preview-body { max-height: 55vh; overflow: auto; }
+.picker-preview-title { margin: 0 0 8px; font-size: 16px; }
+
+/* Preview pane stays readable like article text. */
+.picker-preview-body .article-html { line-height: 1.6; }
+.picker-preview-body .article-html p { margin: 0 0 0.8em; }
+.picker-preview-body .article-html blockquote {
+  margin: 0 0 0.8em;
+  padding-left: 12px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-muted);
+}
+
+.picker-preview-error[hidden],
+.picker-preview-matches[hidden],
+.picker-preview-title[hidden],
+.badge[hidden] { display: none; }
