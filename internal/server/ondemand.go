@@ -142,7 +142,7 @@ func gofeedItemFromStored(it *model.Item) *gofeed.Item {
 		gi.Author = &gofeed.Person{Name: it.Author}
 	}
 	if it.PublishedAt.Valid {
-		t := it.PublishedAt.Time
+		t := it.PublishedAt.Time.UTC()
 		gi.PublishedParsed = &t
 	}
 	return gi

@@ -53,7 +53,7 @@ func feedsListDot(feeds []model.Feed) struct{ Feeds []feedRow } {
 			Title:         f.Title,
 			SourceURL:     f.SourceURL,
 			IntervalLabel: intervalLabel(f.RefreshEvery),
-			LastRefresh:   f.LastRefresh,
+			LastRefresh:   sql.NullTime{Time: f.LastRefresh.Time.UTC(), Valid: f.LastRefresh.Valid},
 			LastStatus:    f.LastStatus,
 			LastError:     f.LastError,
 		})
@@ -321,7 +321,7 @@ func (s *Server) handleFeedDetail(w http.ResponseWriter, r *http.Request) (any, 
 	dot.Feed.ID = f.ID
 	dot.Feed.Title = f.Title
 	dot.Feed.SourceURL = f.SourceURL
-	dot.Feed.LastRefresh = f.LastRefresh
+	dot.Feed.LastRefresh = sql.NullTime{Time: f.LastRefresh.Time.UTC(), Valid: f.LastRefresh.Valid}
 	dot.Feed.LastStatus = f.LastStatus
 	dot.Feed.LastError = f.LastError
 	for i := range items {
@@ -330,7 +330,7 @@ func (s *Server) handleFeedDetail(w http.ResponseWriter, r *http.Request) (any, 
 			Title:     items[i].Title,
 			State:     itemState(items[i]),
 			Details:   itemDetails(items[i]),
-			FetchedAt: items[i].FetchedAt,
+			FetchedAt: sql.NullTime{Time: items[i].FetchedAt.Time.UTC(), Valid: items[i].FetchedAt.Valid},
 		})
 	}
 	return dot, nil
