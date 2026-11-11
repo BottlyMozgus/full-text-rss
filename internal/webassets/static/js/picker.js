@@ -340,6 +340,8 @@
 
   $('[data-picker-reset]').addEventListener('click', function () {
     state.content = initial.content; state.strips = initial.strips.slice();
+    var ruleSel = form.elements.rule_id;
+    if (ruleSel) ruleSel.value = '';
     last = null; server = null;
     changed('Selectors reset to the saved values.', 0);
   });

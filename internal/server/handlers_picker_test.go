@@ -268,6 +268,16 @@ func TestPickerSaveCreatesUpdatesAndReextracts(t *testing.T) {
 	site := pickerFixture(t)
 	art := pickerArticleURL(t, site.URL)
 
+	// stRules lists rules, failing the test on store errors.
+	stRules := func(t *testing.T) []model.SiteRule {
+		t.Helper()
+		rules, err := st.SiteRules(context.Background())
+		if err != nil {
+			t.Fatalf("SiteRules: %v", err)
+		}
+		return rules
+	}
+
 	feed := model.Feed{Token: "savetok", SourceURL: site.URL + "/feed.xml"}
 	feedID, _ := st.CreateFeed(context.Background(), &feed)
 	item := &model.Item{GUID: "g2", URL: art, Title: "Save item", Summary: "old summary"}
@@ -321,25 +331,47 @@ func TestPickerSaveCreatesUpdatesAndReextracts(t *testing.T) {
 		t.Errorf("item not re-extracted: extracted=%v html=%.80q", saved.Extracted, saved.ContentHTML)
 	}
 
-	// Saving again updates in place (upsert by host).
+	// Saving again with no rule_id creates a second rule for the host
+	// (multiple rules per host compose at extraction).
 	form.Set("content_selector", "article")
 	if rec := postForm(t, form); rec.Code != http.StatusSeeOther {
 		t.Fatalf("second save = %d", rec.Code)
 	}
 	rules, _ := st.SiteRules(context.Background())
-	if len(rules) != 1 || rules[0].ContentSelector != "article" {
-		t.Errorf("rules after update = %+v", rules)
+	if len(rules) != 2 {
+		t.Errorf("rules after second save = %d, want 2 (new rule per save without rule_id)", len(rules))
+	}
+	composed, _ := st.RuleForHost(context.Background(), "art.example.test")
+	if composed.ContentSelector != "article#main" {
+		// First rule (by id) supplies the content selector; both strip
+		// lists union.
+		t.Errorf("composed rule = %+v", composed)
+	}
+	if len(composed.StripSelectors) != 2 {
+		t.Errorf("composed strip selectors = %v, want union of both rules", composed.StripSelectors)
+	}
+
+	// Saving with rule_id= of one of the host's rules updates that rule.
+	form.Set("content_selector", "aside")
+	form.Set("rule_id", fmt.Sprintf("%d", rules[1].ID))
+	if rec := postForm(t, form); rec.Code != http.StatusSeeOther {
+		t.Fatalf("targeted save = %d", rec.Code)
+	}
+	updated, _ := st.SiteRule(context.Background(), rules[1].ID)
+	if updated.ContentSelector != "aside" || len(stRules(t)) != 2 {
+		t.Errorf("targeted save = %+v, want in-place update, still 2 rules", updated)
 	}
 
 	// Invalid selector: re-render with flash, nothing saved.
+	form.Del("rule_id")
 	form.Set("content_selector", "article[[")
 	rec = postForm(t, form)
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Invalid selector") {
 		t.Errorf("invalid selector save = %d, want 200 with flash", rec.Code)
 	}
-	rule, _ = st.RuleForHost(context.Background(), "art.example.test")
-	if rule.ContentSelector != "article" {
-		t.Errorf("invalid save overwrote the rule: %+v", rule)
+	count := len(stRules(t))
+	if count != 2 {
+		t.Errorf("invalid save changed the store: %d rules, want 2", count)
 	}
 
 	// Validation failure path: empty host re-renders with the submitted values.

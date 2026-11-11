@@ -46,31 +46,30 @@ func (s *Server) handleRuleFormEdit(w http.ResponseWriter, r *http.Request) (any
 	return ruleFormDot{Rule: *rule}, nil
 }
 
-// handleRuleCreate parses the add-rule form. Host is unique in the store;
-// re-posting an existing host upserts (the store's ON CONFLICT behavior),
-// which the UI presents as "saved".
+// handleRuleCreate parses the add-rule form. Create always inserts a new
+// row: multiple rules per host are allowed and compose at extraction time.
 func (s *Server) handleRuleCreate(w http.ResponseWriter, r *http.Request) {
 	rule, parseErr := ruleFromForm(r)
 	if parseErr != "" {
 		s.flashForm(w, "rules", "rule_form_new", parseErr, ruleFormDot{Rule: model.SiteRule{Host: strings.TrimSpace(r.PostFormValue("host"))}})
 		return
 	}
-	if _, err := s.st.UpsertSiteRule(r.Context(), rule); err != nil {
+	if _, err := s.st.CreateSiteRule(r.Context(), rule); err != nil {
 		s.flashForm(w, "rules", "rule_form_new", friendlyError(err), ruleFormDot{Rule: *rule})
 		return
 	}
 	http.Redirect(w, r, "/admin/rules", http.StatusSeeOther)
 }
 
-// handleRuleUpdate applies the edit form.
+// handleRuleUpdate applies the edit form, addressed by id. The host may
+// change; hosts are no longer unique.
 func (s *Server) handleRuleUpdate(w http.ResponseWriter, r *http.Request) {
 	id, ok := feedPathID(r)
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
-	existing, err := s.st.SiteRule(r.Context(), id)
-	if err != nil {
+	if _, err := s.st.SiteRule(r.Context(), id); err != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -79,25 +78,10 @@ func (s *Server) handleRuleUpdate(w http.ResponseWriter, r *http.Request) {
 		s.flashForm(w, "rules", "rule_form_edit", parseErr, ruleFormDot{Rule: model.SiteRule{ID: id, Host: strings.TrimSpace(r.PostFormValue("host"))}})
 		return
 	}
-	// Rules are unique by host; the store's UpsertSiteRule is the update
-	// path. A host edit means a new row plus deleting the old one; same
-	// host edits upsert in place.
-	if existing.Host != upd.Host {
-		upd.ID = 0
-		if _, err := s.st.UpsertSiteRule(r.Context(), upd); err != nil {
-			s.flashForm(w, "rules", "rule_form_edit", friendlyError(err), ruleFormDot{Rule: *upd})
-			return
-		}
-		if err := s.st.DeleteSiteRule(r.Context(), existing.ID); err != nil {
-			s.flashForm(w, "rules", "rule_form_edit", friendlyError(err), ruleFormDot{Rule: *upd})
-			return
-		}
-	} else {
-		upd.ID = existing.ID
-		if _, err := s.st.UpsertSiteRule(r.Context(), upd); err != nil {
-			s.flashForm(w, "rules", "rule_form_edit", friendlyError(err), ruleFormDot{Rule: *upd})
-			return
-		}
+	upd.ID = id
+	if err := s.st.UpdateSiteRule(r.Context(), upd); err != nil {
+		s.flashForm(w, "rules", "rule_form_edit", friendlyError(err), ruleFormDot{Rule: *upd})
+		return
 	}
 	http.Redirect(w, r, "/admin/rules", http.StatusSeeOther)
 }

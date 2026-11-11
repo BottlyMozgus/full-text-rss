@@ -55,7 +55,8 @@ func TestAPIRulesLifecycle(t *testing.T) {
 		t.Errorf("stored = %+v", got)
 	}
 
-	// Update with host change: new row, old row gone.
+	// Update with host change: same row, host written in place (hosts are
+	// no longer unique, so there is no row swap).
 	rec, out = apiRequest(t, h, "PUT", apiPath("/api/rules/", id),
 		`{"host":"other.example","content_selector":"#content"}`)
 	if rec.Code != http.StatusOK {
@@ -64,8 +65,9 @@ func TestAPIRulesLifecycle(t *testing.T) {
 	if out["host"] != "other.example" {
 		t.Fatalf("host after change = %v", out["host"])
 	}
-	if _, err := st.SiteRule(context.Background(), id); err == nil {
-		t.Error("old rule row still exists after host change")
+	moved, err := st.SiteRule(context.Background(), id)
+	if err != nil || moved.Host != "other.example" {
+		t.Errorf("rule after host change = %+v err %v, want same row with new host", moved, err)
 	}
 
 	// Validation.

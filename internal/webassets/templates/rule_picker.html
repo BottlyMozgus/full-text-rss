@@ -32,7 +32,15 @@
     <section class="picker-block" aria-labelledby="picker-h-rule">
       <h2 id="picker-h-rule">Current rule</h2>
       {{if .RuleExists}}
-      <p class="picker-rule-state"><span class="badge badge-fallback">Exists</span> A rule for <code>{{.Host}}</code> already exists. Saving replaces it.</p>
+      <p class="picker-rule-state"><span class="badge badge-fallback">{{len .HostRules}} rule{{if ne (len .HostRules) 1}}s{{end}}</span> for <code>{{.Host}}</code>. Extraction composes all of them.</p>
+      <div class="field">
+        <label for="picker-rule-id">On save</label>
+        <select id="picker-rule-id" name="rule_id" data-picker-rule-id>
+          <option value="">Create a new rule</option>
+          {{range .HostRules}}<option value="{{.ID}}">Update rule #{{.ID}}{{if .ContentSelector}} ({{.ContentSelector}}{{end}}{{if .StripSelectors}}, {{len .StripSelectors}} strip{{end}})</option>{{end}}
+        </select>
+        <p class="hint">Create another rule to stack selectors, or update one of the existing ones.</p>
+      </div>
       {{else}}
       <p class="picker-rule-state"><span class="badge badge-pending">New</span> No rule yet for <code>{{.Host}}</code>.</p>
       {{end}}

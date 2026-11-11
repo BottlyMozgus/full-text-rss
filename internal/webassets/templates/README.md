@@ -95,8 +95,10 @@ rule_picker.html
                                // (GET /admin/rules/picker, fields url + return)
       ItemID          int64    // >0 when opened from a feed item (hidden item_id)
       Host            string   // rule host to save under
-      RuleExists      bool     // a rule covers this host; fields are prefilled
-      ContentSelector string
+      RuleExists      bool     // rules cover this host; fields are prefilled
+      HostRules       []model.SiteRule // every rule matching the host, for
+                                // the "update vs create" select (name rule_id)
+      ContentSelector string   // composed view of the host's rules
       StripSelectors  []string
       RewriteFrom     string   // kept as hidden rewrite_from / rewrite_to
       RewriteTo       string
@@ -106,7 +108,11 @@ rule_picker.html
   }
   Save is a plain form post to /admin/rules/picker (fields host,
   content_selector, strip_selectors one per line, rewrite_from, rewrite_to,
-  url, return, item_id), so the page works without JavaScript.
+  url, return, item_id, and optionally rule_id: when rule_id names one of
+  the host's rules it is updated in place, anything else creates a new
+  rule), so the page works without JavaScript. Multiple rules per host are
+  allowed; extraction composes them (strip selectors union, first content
+  selector and first URL rewrite win, longest-suffix rules first).
 
   static/js/picker.js is loaded only by this page (defer). It finds
   [data-picker], the iframe #picker-frame and the save form, then:

@@ -27,11 +27,12 @@ import (
 // rulePickerDot is the rule_picker.html content dot. Empty URL renders the
 // URL entry form; otherwise the picker page shows the frame.
 type rulePickerDot struct {
-	URL             string // article URL; "" renders the URL entry form
-	ItemID          int64  // >0 when opened from a feed item; saving re-extracts it
-	Host            string // rule host to save under
-	RuleExists      bool   // a rule already covers this host; fields prefilled
-	ContentSelector string
+	URL             string           // article URL; "" renders the URL entry form
+	ItemID          int64            // >0 when opened from a feed item; saving re-extracts it
+	Host            string           // rule host to save under
+	RuleExists      bool             // rules already cover this host; fields prefilled
+	HostRules       []model.SiteRule // every rule matching the host (may compose)
+	ContentSelector string           // composed from the host's rules
 	StripSelectors  []string
 	RewriteFrom     string
 	RewriteTo       string
@@ -216,6 +217,8 @@ func (s *Server) handlePickerPage(w http.ResponseWriter, r *http.Request) (any, 
 
 	if dot.URL != "" {
 		dot.Host = pickerSaveHost(s, dot.URL)
+		hostRules, _ := s.st.RulesForHost(r.Context(), hostName(dot.URL))
+		dot.HostRules = hostRules
 		rule, _ := s.st.RuleForHost(r.Context(), hostName(dot.URL))
 		if rule != nil {
 			dot.RuleExists = true
@@ -474,11 +477,30 @@ func (s *Server) handlePickerSave(w http.ResponseWriter, r *http.Request) {
 		s.renderPickerSaveError(w, r, "Invalid selector: "+strings.Join(bad, "; "))
 		return
 	}
-	if _, err := s.st.UpsertSiteRule(r.Context(), rule); err != nil {
+	// rule_id decides insert vs update: an id pointing at a rule of the
+	// same host updates that rule in place, anything else creates a new
+	// rule (multiple rules per host are allowed and compose at extraction).
+	if ruleID, ok := queryID(r.PostFormValue("rule_id")); ok {
+		if existing, err := s.st.SiteRule(r.Context(), ruleID); err == nil && existing.Host == rule.Host {
+			rule.ID = existing.ID
+			if err := s.st.UpdateSiteRule(r.Context(), rule); err != nil {
+				s.renderPickerSaveError(w, r, friendlyError(err))
+				return
+			}
+			s.pickerFinishSave(w, r, rule)
+			return
+		}
+	}
+	if _, err := s.st.CreateSiteRule(r.Context(), rule); err != nil {
 		s.renderPickerSaveError(w, r, friendlyError(err))
 		return
 	}
+	s.pickerFinishSave(w, r, rule)
+}
 
+// pickerFinishSave re-extracts the source item (when one was given) and
+// redirects to the validated return path.
+func (s *Server) pickerFinishSave(w http.ResponseWriter, r *http.Request, rule *model.SiteRule) {
 	ret := sanitizePickerReturn(r.PostFormValue("return"))
 	if itemID, ok := queryID(r.PostFormValue("item_id")); ok {
 		s.reextractPickerItem(context.Background(), itemID, rule)

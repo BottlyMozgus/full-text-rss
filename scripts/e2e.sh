@@ -193,10 +193,22 @@ curl -sf -b "$COOKIES" -o /dev/null -w "%{http_code}" \
   --data-urlencode "return=/admin/rules" \
   "$BASE/admin/rules/picker" | grep -q 303 || fail "picker save expected 303"
 curl -sf -b "$COOKIES" "$BASE/api/rules" | jq -e '.[] | select(.content_selector == "#real-content")' >/dev/null || fail "saved rule missing from api"
-# The rule takes effect on a fresh refresh.
+
+# A second rule for the same host is allowed; both compose at extraction.
+curl -sf -b "$COOKIES" -o /dev/null -w "%{http_code}" \
+  --data-urlencode "host=$(printf '%s' "$(printf '%s' "$FIXTURE_BASE" | sed 's#https\?://##; s#:[0-9]*$##')" | tr -d '\n')" \
+  --data-urlencode "strip_selectors=.header-bar" \
+  --data-urlencode "url=$ARTICLE" \
+  --data-urlencode "return=/admin/rules" \
+  "$BASE/admin/rules/picker" | grep -q 303 || fail "second picker save expected 303"
+RULE_COUNT=$(curl -sf -b "$COOKIES" "$BASE/api/rules" | jq '[.[] | select(.host | endswith("'"$(printf '%s' "$FIXTURE_BASE" | sed 's#https\?://##; s#:[0-9]*$##')"'"))] | length')
+[ "$RULE_COUNT" -ge 2 ] || fail "expected >=2 rules for the fixture host, got $RULE_COUNT"
+
+# The rules take effect on a fresh refresh.
 curl -sf -b "$COOKIES" -X POST "$BASE/api/feeds/$FEEDID/refresh" >/dev/null || fail "re-refresh"
 sleep 2
 curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "actual content lives in this div" || fail "rule content missing after picker save"
+curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "Site chrome" && fail "second rule's strip selector not applied"
 echo "rule picker OK"
 
 echo "== on-demand endpoint =="

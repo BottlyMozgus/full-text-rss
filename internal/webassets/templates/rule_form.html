@@ -28,7 +28,7 @@
 <div class="field">
   <label for="host">Host</label>
   <input type="text" id="host" name="host" value="{{.Rule.Host}}" placeholder="example.com" required>
-  <p class="hint">Matches by host suffix, e.g. "example.com" also covers "www.example.com".</p>
+  <p class="hint">Matches by host suffix, e.g. "example.com" also covers "www.example.com". Multiple rules for one host compose: strip selectors union, first content selector wins.</p>
 </div>
 <div class="field">
   <label for="content_selector">Content selector</label>
