@@ -355,6 +355,7 @@ type itemPreviewDot struct {
 		Title string
 	}
 	Item struct {
+		ID          int64
 		Title       string
 		URL         string
 		Author      string
@@ -383,6 +384,7 @@ func (s *Server) handleItemPreview(w http.ResponseWriter, r *http.Request) (any,
 	var dot itemPreviewDot
 	dot.Feed.ID = feed.ID
 	dot.Feed.Title = feed.Title
+	dot.Item.ID = it.ID
 	dot.Item.Title = it.Title
 	dot.Item.URL = it.URL
 	dot.Item.Author = it.Author

@@ -155,6 +155,50 @@ for p in /admin/feeds "/admin/feeds/$FEEDID" /admin/feeds/new /admin/rules /admi
   [ "$code" = "200" ] || fail "GET $p expected 200, got $code"
 done
 
+echo "== rule picker =="
+ARTICLE="$FIXTURE_BASE/article-b.html"
+URLENC_ARTICLE=$(printf '%s' "$ARTICLE" | jq -sRr @uri)
+
+# Picker page for a fixture article.
+PICKER=$(curl -sf -b "$COOKIES" "$BASE/admin/rules/picker?url=$URLENC_ARTICLE") || fail "picker page"
+echo "$PICKER" | grep -q "/admin/rules/picker/frame?url=" || fail "picker page lacks frame src"
+
+# Frame: sandboxed, script-free.
+FRAME_HEADERS=$(curl -sf -b "$COOKIES" -D - -o "$WORK/frame.html" "$BASE/admin/rules/picker/frame?url=$URLENC_ARTICLE") || fail "picker frame"
+echo "$FRAME_HEADERS" | grep -qi "content-security-policy:.*sandbox" || fail "frame lacks CSP sandbox"
+echo "$FRAME_HEADERS" | grep -qi "x-content-type-options: nosniff" || fail "frame lacks nosniff"
+! grep -qi "<script" "$WORK/frame.html" || fail "frame body contains script"
+grep -qi "real-content" "$WORK/frame.html" || fail "frame lost the article content"
+
+# Preview: content selector + strip selector.
+PREVIEW=$(curl -sf -b "$COOKIES" -H "Content-Type: application/json" \
+  -d "{\"url\":\"$ARTICLE\",\"content_selector\":\"#real-content\",\"strip_selectors\":[\".sidebar\"]}" \
+  "$BASE/admin/rules/picker/preview") || fail "picker preview"
+echo "$PREVIEW" | jq -e '.error == ""' >/dev/null || fail "preview reported error: $(echo "$PREVIEW" | jq -r .error)"
+echo "$PREVIEW" | jq -r .html | grep -q "actual content lives in this div" || fail "preview html lost content"
+echo "$PREVIEW" | jq -r .html | grep -q "Related junk" && fail "preview html kept stripped element"
+echo "$PREVIEW" | jq -e '.mode == "rule"' >/dev/null || fail "preview mode not rule"
+echo "$PREVIEW" | jq -e '.content_matches == 1 and .strip_matches[0] == 1' >/dev/null || fail "preview match counts wrong: $(echo "$PREVIEW" | jq -c '{content_matches, strip_matches}')"
+
+# Preview rejects wrong content type.
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" -H "Content-Type: text/plain" -d '{}' "$BASE/admin/rules/picker/preview")
+[ "$code" = "415" ] || fail "preview text/plain expected 415, got $code"
+
+# Save: creates the rule and it shows up in the API.
+curl -sf -b "$COOKIES" -o /dev/null -w "%{http_code}" \
+  --data-urlencode "host=$(printf '%s' "$(printf '%s' "$FIXTURE_BASE" | sed 's#https\?://##; s#:[0-9]*$##')" | tr -d '\n')" \
+  --data-urlencode "content_selector=#real-content" \
+  --data-urlencode "strip_selectors=.sidebar" \
+  --data-urlencode "url=$ARTICLE" \
+  --data-urlencode "return=/admin/rules" \
+  "$BASE/admin/rules/picker" | grep -q 303 || fail "picker save expected 303"
+curl -sf -b "$COOKIES" "$BASE/api/rules" | jq -e '.[] | select(.content_selector == "#real-content")' >/dev/null || fail "saved rule missing from api"
+# The rule takes effect on a fresh refresh.
+curl -sf -b "$COOKIES" -X POST "$BASE/api/feeds/$FEEDID/refresh" >/dev/null || fail "re-refresh"
+sleep 2
+curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "actual content lives in this div" || fail "rule content missing after picker save"
+echo "rule picker OK"
+
 echo "== on-demand endpoint =="
 curl -sf -b "$COOKIES" "$BASE/on-demand?url=$(printf '%s' "$FIXTURE_BASE/feed.xml" | jq -sRr @uri)" > "$WORK/ondemand.xml" || fail "on-demand request"
 grep -q "actual content lives in this div" "$WORK/ondemand.xml" || fail "on-demand rule content missing"

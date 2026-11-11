@@ -45,6 +45,7 @@ type Server struct {
 	tmpl      *template.Template            // layout + every page; used for login
 	pages     map[string]*template.Template // page define name -> base layout bound to it
 	refresher Refresher                     // optional; nil = minimal inline refresh
+	picker    *pageCache                    // fetched article bodies shared by frame/preview/save
 }
 
 // pageDefines lists every page-level {{define}} in templates/*.html. Each one
@@ -59,6 +60,7 @@ var pageDefines = []string{
 	"rules_list",
 	"rule_form_new",
 	"rule_form_edit",
+	"rule_picker",
 	"ondemand",
 }
 
@@ -75,6 +77,7 @@ func New(cfg *config.Config, st *store.Store) *Server {
 		extractor: extract.NewExtractor(fetcher, st),
 		tmpl:      root,
 		pages:     mustBindPages(root),
+		picker:    newPageCache(),
 	}
 }
 
@@ -178,6 +181,10 @@ func (s *Server) Routes() http.Handler {
 	mux.Handle("GET /admin/rules/{id}/edit", s.auth(s.page(s.handleRuleFormEdit, "rules", "rule_form_edit")))
 	mux.Handle("POST /admin/rules/{id}/edit", s.auth(s.handleRuleUpdate))
 	mux.Handle("POST /admin/rules/{id}/delete", s.auth(s.handleRuleDelete))
+	mux.Handle("GET /admin/rules/picker", s.auth(s.page(s.handlePickerPage, "rules", "rule_picker")))
+	mux.Handle("GET /admin/rules/picker/frame", s.auth(s.handlePickerFrame))
+	mux.Handle("POST /admin/rules/picker/preview", s.auth(s.handlePickerPreview))
+	mux.Handle("POST /admin/rules/picker", s.auth(s.handlePickerSave))
 	mux.Handle("GET /admin/ondemand", s.auth(s.page(s.handleOnDemandPage, "ondemand", "ondemand")))
 
 	// JSON API. Bearer-token auth is accepted in addition to the session
