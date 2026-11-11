@@ -9,6 +9,7 @@ Full-Text RSS, but self-hosted and free.
 ## Features
 
 - **Saved feeds** with unguessable token URLs: `/feed/<token>.xml` — subscribe from any RSS reader, no login needed for readers.
+- **Per-feed item limit**: each saved feed returns its newest 20 entries by default; change it per feed (1 to 500).
 - **On-demand conversion**: `/on-demand?url=<feed-url>` converts any feed on the fly.
 - **Per-site rules**: content selector, strip selectors, URL rewrite; rules override Readability.
 - **Aggressive HTML cleanup**: no scripts, iframes, classes, or inline styles — safe minimal HTML.
@@ -55,6 +56,28 @@ FTRSS_ADMIN_PASSWORD=dev ./rss-scraper
 - `/on-demand?url=...` — on-demand conversion
 - `/healthz` — liveness
 - `/api/...` — JSON API (same auth as UI)
+
+## Limiting feed size
+
+Each saved feed has a **Max items** setting: how many of the newest entries
+`/feed/<token>.xml` returns. The default is 20 and the allowed range is 1 to 500.
+
+- Admin UI: the "Max items" field on the add and edit feed forms.
+- JSON API: `max_items` on `POST /api/feeds` and `PUT /api/feeds/{id}`. Leaving
+  it out (or sending 0) uses 20 on create and keeps the current value on update.
+
+```sh
+curl -H "Authorization: Bearer $FTRSS_ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -X PUT -d '{"source_url":"https://example.com/feed.xml","max_items":50}' \
+  http://localhost:8080/api/feeds/1
+```
+
+The limit only affects what the feed URL returns. Older items stay cached, so
+raising the limit later brings them back. The on-demand endpoint keeps its own
+fixed cap of 10 items.
+
+Upgrade note: before this setting existed, saved feeds returned up to 100
+entries. After upgrading, existing feeds return 20 until you raise their limit.
 
 ## Backups
 

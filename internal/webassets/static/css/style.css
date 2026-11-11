@@ -271,7 +271,7 @@ form.stack { max-width: 520px; }
   margin-top: 3px;
 }
 
-input[type="text"], input[type="password"], input[type="url"], select, textarea {
+input[type="text"], input[type="password"], input[type="url"], input[type="number"], select, textarea {
   width: 100%;
   font: inherit;
   font-size: 13.5px;

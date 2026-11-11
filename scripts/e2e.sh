@@ -133,6 +133,22 @@ ETAG=$(curl -sfI "$BASE/feed/$TOKEN.xml" | tr -d '\r' | awk 'tolower($1)=="etag:
 code=$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: $ETAG" "$BASE/feed/$TOKEN.xml")
 [ "$code" = "304" ] || fail "If-None-Match expected 304, got $code"
 
+echo "== max_items limit =="
+count_items() { curl -sf "$BASE/feed/$TOKEN.xml" | grep -c "<item>"; }
+set_max_items() {
+  curl -sf -b "$COOKIES" -H "Content-Type: application/json" -X PUT \
+    -d "{\"source_url\":\"$FIXTURE_BASE/feed.xml\",\"title\":\"Fixture Feed\",\"max_items\":$1}" \
+    "$BASE/api/feeds/$FEEDID" | jq -e ".max_items == $1" >/dev/null
+}
+echo "$FEEDJSON" | jq -e '.max_items == 20' >/dev/null || fail "default max_items is not 20"
+ALL=$(count_items)
+[ "$ALL" -ge 3 ] || fail "expected >=3 items before limiting, got $ALL"
+set_max_items 1 || fail "set max_items=1"
+[ "$(count_items)" = "1" ] || fail "max_items=1 expected 1 item, got $(count_items)"
+set_max_items 20 || fail "restore max_items=20"
+[ "$(count_items)" = "$ALL" ] || fail "restored limit expected $ALL items, got $(count_items)"
+echo "max_items limit OK"
+
 echo "== admin pages =="
 for p in /admin/feeds "/admin/feeds/$FEEDID" /admin/feeds/new /admin/rules /admin/rules/new /admin/ondemand; do
   code=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" "$BASE$p")

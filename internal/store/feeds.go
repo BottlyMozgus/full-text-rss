@@ -22,7 +22,8 @@ func generateToken() (string, error) {
 }
 
 // CreateFeed inserts f, generating a token if f.Token is empty, and sets
-// f.ID and f.CreatedAt. Zero RefreshEvery defaults to 3600s in the schema.
+// f.ID and f.CreatedAt. Zero RefreshEvery defaults to 3600s in the schema;
+// MaxItems below 1 becomes model.DefaultMaxItems.
 func (s *Store) CreateFeed(ctx context.Context, f *model.Feed) (int64, error) {
 	if f.Token == "" {
 		tok, err := generateToken()
@@ -31,14 +32,15 @@ func (s *Store) CreateFeed(ctx context.Context, f *model.Feed) (int64, error) {
 		}
 		f.Token = tok
 	}
+	f.MaxItems = maxItemsOrDefault(f.MaxItems)
 	created := f.CreatedAt
 	if created.IsZero() {
 		created = time.Now().UTC()
 	}
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO feeds (token, source_url, title, refresh_every_seconds, created_at)
-		 VALUES (?, ?, ?, ?, ?)`,
-		f.Token, f.SourceURL, f.Title, int64(f.RefreshEvery.Seconds()), created)
+		`INSERT INTO feeds (token, source_url, title, refresh_every_seconds, max_items, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		f.Token, f.SourceURL, f.Title, int64(f.RefreshEvery.Seconds()), f.MaxItems, created)
 	if err != nil {
 		return 0, fmt.Errorf("create feed: %w", err)
 	}
@@ -52,11 +54,13 @@ func (s *Store) CreateFeed(ctx context.Context, f *model.Feed) (int64, error) {
 }
 
 // UpdateFeed persists all editable fields of f. It does not touch the token,
-// scheduler bookkeeping, or created_at.
+// scheduler bookkeeping, or created_at. MaxItems below 1 becomes
+// model.DefaultMaxItems.
 func (s *Store) UpdateFeed(ctx context.Context, f *model.Feed) error {
+	f.MaxItems = maxItemsOrDefault(f.MaxItems)
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE feeds SET source_url = ?, title = ?, refresh_every_seconds = ? WHERE id = ?`,
-		f.SourceURL, f.Title, int64(f.RefreshEvery.Seconds()), f.ID)
+		`UPDATE feeds SET source_url = ?, title = ?, refresh_every_seconds = ?, max_items = ? WHERE id = ?`,
+		f.SourceURL, f.Title, int64(f.RefreshEvery.Seconds()), f.MaxItems, f.ID)
 	if err != nil {
 		return fmt.Errorf("update feed %d: %w", f.ID, err)
 	}
@@ -167,7 +171,15 @@ func (s *Store) MarkFeedRefreshed(ctx context.Context, id int64, status, errMsg 
 }
 
 const feedCols = `SELECT id, token, source_url, title, refresh_every_seconds,
-	last_refresh, last_status, last_error, created_at FROM feeds`
+	max_items, last_refresh, last_status, last_error, created_at FROM feeds`
+
+// maxItemsOrDefault maps an unset (non-positive) limit to the default.
+func maxItemsOrDefault(n int) int {
+	if n < 1 {
+		return model.DefaultMaxItems
+	}
+	return n
+}
 
 // scanFeed adapts a row scan into a model.Feed.
 func scanFeed(scan func(dest ...any) error) (*model.Feed, error) {
@@ -177,7 +189,7 @@ func scanFeed(scan func(dest ...any) error) (*model.Feed, error) {
 		lastRef    sql.NullTime
 	)
 	if err := scan(&f.ID, &f.Token, &f.SourceURL, &f.Title, &refreshSec,
-		&lastRef, &f.LastStatus, &f.LastError, &f.CreatedAt); err != nil {
+		&f.MaxItems, &lastRef, &f.LastStatus, &f.LastError, &f.CreatedAt); err != nil {
 		return nil, err
 	}
 	f.RefreshEvery = time.Duration(refreshSec) * time.Second

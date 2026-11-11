@@ -19,7 +19,8 @@ error), Errors (⚠ + count if any), row actions [Refresh] [Edit] [Delete].
 
 ### /admin/feeds/new + /admin/feeds/<id>/edit
 Form fields: Source URL* (text), Title (text, placeholder "auto from feed"),
-Refresh interval (select: 15m/30m/60m/3h/6h/12h/24h, default 60m).
+Refresh interval (select: 15m/30m/60m/3h/6h/12h/24h, default 60m),
+Max items (number 1-500, default 20; entries the feed URL returns).
 On edit: additionally shows the generated feed URL with a Copy button
 (`http://<host>/feed/<token>.xml`), and buttons Save / Cancel / Delete.
 

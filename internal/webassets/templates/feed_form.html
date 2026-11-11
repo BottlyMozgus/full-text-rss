@@ -51,4 +51,9 @@
     {{end}}
   </select>
 </div>
+<div class="field">
+  <label for="max_items">Max items</label>
+  <input type="number" id="max_items" name="max_items" value="{{.Feed.MaxItems}}" min="1" max="{{.MaxItemsCeiling}}" step="1" required>
+  <p class="hint">How many of the newest entries the feed URL returns.</p>
+</div>
 {{end}}
