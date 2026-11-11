@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/andybalholm/cascadia"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/andybalholm/cascadia"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )

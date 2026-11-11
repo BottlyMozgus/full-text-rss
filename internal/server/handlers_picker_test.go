@@ -251,8 +251,8 @@ func TestPickerPreviewJSON(t *testing.T) {
 		t.Fatalf("preview fetch failure = %d, want 502 json", rec.Code)
 	}
 	var errResp struct {
-		Error  string `json:"error"`
-		HTML   string `json:"html"`
+		Error string `json:"error"`
+		HTML  string `json:"html"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &errResp); err != nil {
 		t.Fatalf("not json: %v", err)
