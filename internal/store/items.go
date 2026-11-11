@@ -141,11 +141,14 @@ func boolInt(b bool) int {
 }
 
 // nullTime converts sql.NullTime to a driver value (nil when invalid).
+// Times are stored in UTC: feed dates parsed from numeric UTC offsets can
+// carry a zone with an empty name, and the stored value must stay parseable
+// by the driver's read-side time formats regardless of the host's local zone.
 func nullTime(nt sql.NullTime) any {
-	if nt.Valid {
-		return nt.Time
+	if !nt.Valid {
+		return nil
 	}
-	return nil
+	return nt.Time.UTC()
 }
 
 // scanItem adapts a row scan into a model.Item.
