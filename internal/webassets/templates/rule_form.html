@@ -28,11 +28,12 @@
 <div class="field">
   <label for="host">Host</label>
   <input type="text" id="host" name="host" value="{{.Rule.Host}}" placeholder="example.com" required>
-  <p class="hint">Matches by host suffix, e.g. "example.com" also covers "www.example.com".</p>
+  <p class="hint">Matches by host suffix, e.g. "example.com" also covers "www.example.com". Multiple rules for one host compose: strip selectors union, first content selector wins.</p>
 </div>
 <div class="field">
   <label for="content_selector">Content selector</label>
   <input type="text" id="content_selector" name="content_selector" value="{{.Rule.ContentSelector}}" placeholder="article.post">
+  {{if not .Rule.ID}}<p class="hint">Tip: build selectors visually with the <a href="/admin/rules/picker">rule picker</a>.</p>{{end}}
 </div>
 <div class="field">
   <label for="strip_selectors">Strip selectors</label>

@@ -92,8 +92,8 @@ echo "== create feed via API =="
 FEEDJSON=$(curl -sf -b "$COOKIES" -H "Content-Type: application/json" \
   -d "{\"source_url\":\"$FIXTURE_BASE/feed.xml\",\"title\":\"Fixture Feed\"}" \
   "$BASE/api/feeds") || fail "create feed"
-FEEDID=$(echo "$FEEDJSON" | jq -r .id)
-TOKEN=$(echo "$FEEDJSON" | jq -r .token)
+FEEDID=$(printf '%s\n' "$FEEDJSON" | jq -r .id)
+TOKEN=$(printf '%s\n' "$FEEDJSON" | jq -r .token)
 [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || fail "no token in response"
 echo "feed id=$FEEDID"
 
@@ -106,10 +106,10 @@ while [ "$i" -lt 30 ]; do
   i=$((i + 1)); sleep 1
 done
 STATUS=$(curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status")
-echo "$STATUS" | jq -r '.last_status, (.items[]? | "\(.guid) -> \(.state)")'
-echo "$STATUS" | jq -e '.last_status == "ok"' >/dev/null || fail "feed not ok"
-echo "$STATUS" | jq -e '[.items[]? | select(.state=="extracted")] | length >= 2' >/dev/null || fail "expected >=2 extracted items"
-echo "$STATUS" | jq -e '[.items[]? | select(.state=="summary-fallback")] | length >= 1' >/dev/null || fail "expected >=1 summary-fallback item"
+printf '%s\n' "$STATUS" | jq -r '.last_status, (.items[]? | "\(.guid) -> \(.state)")'
+printf '%s\n' "$STATUS" | jq -e '.last_status == "ok"' >/dev/null || fail "feed not ok"
+printf '%s\n' "$STATUS" | jq -e '[.items[]? | select(.state=="extracted")] | length >= 2' >/dev/null || fail "expected >=2 extracted items"
+printf '%s\n' "$STATUS" | jq -e '[.items[]? | select(.state=="summary-fallback")] | length >= 1' >/dev/null || fail "expected >=1 summary-fallback item"
 
 echo "== served feed XML =="
 code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/feed/$TOKEN.xml")
@@ -140,7 +140,7 @@ set_max_items() {
     -d "{\"source_url\":\"$FIXTURE_BASE/feed.xml\",\"title\":\"Fixture Feed\",\"max_items\":$1}" \
     "$BASE/api/feeds/$FEEDID" | jq -e ".max_items == $1" >/dev/null
 }
-echo "$FEEDJSON" | jq -e '.max_items == 20' >/dev/null || fail "default max_items is not 20"
+printf '%s\n' "$FEEDJSON" | jq -e '.max_items == 20' >/dev/null || fail "default max_items is not 20"
 ALL=$(count_items)
 [ "$ALL" -ge 3 ] || fail "expected >=3 items before limiting, got $ALL"
 set_max_items 1 || fail "set max_items=1"
@@ -154,6 +154,75 @@ for p in /admin/feeds "/admin/feeds/$FEEDID" /admin/feeds/new /admin/rules /admi
   code=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" "$BASE$p")
   [ "$code" = "200" ] || fail "GET $p expected 200, got $code"
 done
+
+echo "== rule picker =="
+ARTICLE="$FIXTURE_BASE/article-b.html"
+URLENC_ARTICLE=$(printf '%s' "$ARTICLE" | jq -sRr @uri)
+
+# Picker page for a fixture article.
+PICKER=$(curl -sf -b "$COOKIES" "$BASE/admin/rules/picker?url=$URLENC_ARTICLE") || fail "picker page"
+echo "$PICKER" | grep -q "/admin/rules/picker/frame?url=" || fail "picker page lacks frame src"
+
+# Frame: sandboxed, script-free.
+FRAME_HEADERS=$(curl -sf -b "$COOKIES" -D - -o "$WORK/frame.html" "$BASE/admin/rules/picker/frame?url=$URLENC_ARTICLE") || fail "picker frame"
+echo "$FRAME_HEADERS" | grep -qi "content-security-policy:.*sandbox" || fail "frame lacks CSP sandbox"
+echo "$FRAME_HEADERS" | grep -qi "x-content-type-options: nosniff" || fail "frame lacks nosniff"
+! grep -qi "<script" "$WORK/frame.html" || fail "frame body contains script"
+grep -qi "real-content" "$WORK/frame.html" || fail "frame lost the article content"
+
+# Preview: content selector + strip selector.
+PREVIEW=$(curl -sf -b "$COOKIES" -H "Content-Type: application/json" \
+  -d "{\"url\":\"$ARTICLE\",\"content_selector\":\"#real-content\",\"strip_selectors\":[\".sidebar\"]}" \
+  "$BASE/admin/rules/picker/preview") || fail "picker preview"
+printf '%s\n' "$PREVIEW" | jq -e '.error == ""' >/dev/null || fail "preview reported error: $(printf '%s\n' "$PREVIEW" | jq -r .error)"
+printf '%s\n' "$PREVIEW" | jq -r .html | grep -q "actual content lives in this div" || fail "preview html lost content"
+printf '%s\n' "$PREVIEW" | jq -r .html | grep -q "Related junk" && fail "preview html kept stripped element"
+printf '%s\n' "$PREVIEW" | jq -e '.mode == "rule"' >/dev/null || fail "preview mode not rule"
+printf '%s\n' "$PREVIEW" | jq -e '.content_matches == 1 and .strip_matches[0] == 1' >/dev/null || fail "preview match counts wrong: $(printf '%s\n' "$PREVIEW" | jq -c '{content_matches, strip_matches}')"
+
+# Preview rejects wrong content type.
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" -H "Content-Type: text/plain" -d '{}' "$BASE/admin/rules/picker/preview")
+[ "$code" = "415" ] || fail "preview text/plain expected 415, got $code"
+
+# Save: creates the rule and it shows up in the API.
+curl -sf -b "$COOKIES" -o /dev/null -w "%{http_code}" \
+  --data-urlencode "host=$(printf '%s' "$(printf '%s' "$FIXTURE_BASE" | sed 's#https\?://##; s#:[0-9]*$##')" | tr -d '\n')" \
+  --data-urlencode "content_selector=#real-content" \
+  --data-urlencode "strip_selectors=.sidebar" \
+  --data-urlencode "url=$ARTICLE" \
+  --data-urlencode "return=/admin/rules" \
+  "$BASE/admin/rules/picker" | grep -q 303 || fail "picker save expected 303"
+curl -sf -b "$COOKIES" "$BASE/api/rules" | jq -e '.[] | select(.content_selector == "#real-content")' >/dev/null || fail "saved rule missing from api"
+
+# A second rule for the same host is allowed; both compose at extraction.
+curl -sf -b "$COOKIES" -o /dev/null -w "%{http_code}" \
+  --data-urlencode "host=$(printf '%s' "$(printf '%s' "$FIXTURE_BASE" | sed 's#https\?://##; s#:[0-9]*$##')" | tr -d '\n')" \
+  --data-urlencode "strip_selectors=.header-bar" \
+  --data-urlencode "url=$ARTICLE" \
+  --data-urlencode "return=/admin/rules" \
+  "$BASE/admin/rules/picker" | grep -q 303 || fail "second picker save expected 303"
+RULE_COUNT=$(curl -sf -b "$COOKIES" "$BASE/api/rules" | jq '[.[] | select(.host | endswith("'"$(printf '%s' "$FIXTURE_BASE" | sed 's#https\?://##; s#:[0-9]*$##')"'"))] | length')
+[ "$RULE_COUNT" -ge 2 ] || fail "expected >=2 rules for the fixture host, got $RULE_COUNT"
+
+# The rules take effect on a fresh refresh.
+curl -sf -b "$COOKIES" -X POST "$BASE/api/feeds/$FEEDID/refresh" >/dev/null || fail "re-refresh"
+sleep 2
+curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "actual content lives in this div" || fail "rule content missing after picker save"
+curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "Site chrome" && fail "second rule's strip selector not applied"
+echo "rule picker OK"
+
+echo "== per-item re-extract =="
+# Re-extract the rule-extracted item and confirm the rule content still
+# applies end to end (the button refetches with current rules).
+ITEMID=$(curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status" | jq -r '.items[] | select(.guid == "fixture-b") | .id')
+[ -n "$ITEMID" ] && [ "$ITEMID" != "null" ] || fail "no fixture-b item to reextract"
+curl -sf -b "$COOKIES" -o /dev/null -w "%{http_code}" -X POST \
+  "$BASE/admin/feeds/$FEEDID/items/$ITEMID/reextract" | grep -q 303 || fail "item reextract expected 303"
+curl -sf -b "$COOKIES" "$BASE/admin/feeds/$FEEDID/items/$ITEMID" > "$WORK/itempage.html" || fail "item preview after reextract"
+grep -q "Re-extract" "$WORK/itempage.html" || fail "reextract button missing from item preview"
+grep -q "actual content lives in this div" "$WORK/itempage.html" || fail "reextracted item lost rule content"
+curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status" | jq -e --arg id "$ITEMID" '.items[] | select(.id == ($id | tonumber)) | .state == "extracted"' >/dev/null || fail "reextracted item state not extracted"
+echo "per-item re-extract OK"
 
 echo "== on-demand endpoint =="
 curl -sf -b "$COOKIES" "$BASE/on-demand?url=$(printf '%s' "$FIXTURE_BASE/feed.xml" | jq -sRr @uri)" > "$WORK/ondemand.xml" || fail "on-demand request"

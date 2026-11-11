@@ -348,19 +348,23 @@ func itemDetails(it model.Item) string {
 	return "Not fetched yet."
 }
 
+// itemPreviewItem is the Item part of the item_preview.html dot.
+type itemPreviewItem struct {
+	ID          int64
+	Title       string
+	URL         string
+	Author      string
+	ContentHTML template.HTML // rendered pane, pre-sanitized
+	RawHTML     string        // code pane, escaped by html/template
+}
+
 // itemPreviewDot is the item_preview.html content dot.
 type itemPreviewDot struct {
 	Feed struct {
 		ID    int64
 		Title string
 	}
-	Item struct {
-		Title       string
-		URL         string
-		Author      string
-		ContentHTML template.HTML // rendered pane, pre-sanitized
-		RawHTML     string        // code pane, escaped by html/template
-	}
+	Item itemPreviewItem
 }
 
 // handleItemPreview renders the extracted HTML (raw pane) next to its
@@ -376,19 +380,76 @@ func (s *Server) handleItemPreview(w http.ResponseWriter, r *http.Request) (any,
 	if err != nil {
 		return nil, err
 	}
-	feed, err := s.st.Feed(r.Context(), it.FeedID)
+	return s.itemPreviewDot(r.Context(), it), nil
+}
+
+// itemPreviewDot builds the item_preview.html content dot for one item.
+func (s *Server) itemPreviewDot(ctx context.Context, it *model.Item) itemPreviewDot {
+	feed, err := s.st.Feed(ctx, it.FeedID)
 	if err != nil {
-		return nil, err
+		return itemPreviewDot{Item: itemPreviewItem{ID: it.ID}}
 	}
 	var dot itemPreviewDot
 	dot.Feed.ID = feed.ID
 	dot.Feed.Title = feed.Title
+	dot.Item.ID = it.ID
 	dot.Item.Title = it.Title
 	dot.Item.URL = it.URL
 	dot.Item.Author = it.Author
 	dot.Item.ContentHTML = template.HTML(it.ContentHTML) // pre-sanitized
 	dot.Item.RawHTML = it.ContentHTML                    // escaped in code pane
-	return dot, nil
+	return dot
+}
+
+// handleItemReextract refetches one item's article with the host's current
+// rules and replaces the stored content. The picker page cache is reused so
+// a back-and-forth with the picker does not hammer the origin; failures
+// redirect back with a flash and the old content stays.
+func (s *Server) handleItemReextract(w http.ResponseWriter, r *http.Request) {
+	itemID, ok := idInPath(r) // .../{itemID}/reextract: id is second-to-last
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	it, err := s.st.Item(r.Context(), itemID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := s.st.Feed(r.Context(), it.FeedID); err != nil {
+		// Items cascade with their feed, so this only fires on a data
+		// anomaly; treat as missing like the read path does.
+		http.NotFound(w, r)
+		return
+	}
+	back := fmt.Sprintf("/admin/feeds/%d/items/%d", it.FeedID, it.ID)
+	if it.URL == "" {
+		s.flashForm(w, "feeds", "item_preview", "This item has no link to re-fetch; it has no article body.", itemReextractDot(r.Context(), s, it))
+		http.Redirect(w, r, back, http.StatusSeeOther)
+		return
+	}
+	rule, fetchURL := s.pickerRuleLookup(it.URL, "", "")
+	page, err := s.pickerBody(r.Context(), fetchURL)
+	if err != nil {
+		s.flashForm(w, "feeds", "item_preview", "Re-fetch failed: "+friendlyError(err), itemReextractDot(r.Context(), s, it))
+		return
+	}
+	res, err := s.extractor.ExtractBody(page, fetchURL, rule)
+	if err != nil {
+		// Rule vs readability fallback errors leave the stored item alone.
+		s.flashForm(w, "feeds", "item_preview", "Extraction failed; the previous content was kept. "+friendlyError(err), itemReextractDot(r.Context(), s, it))
+		return
+	}
+	if err := s.st.UpdateItemContent(r.Context(), it.ID, res.ContentHTML, true, false); err != nil {
+		s.flashForm(w, "feeds", "item_preview", friendlyError(err), itemReextractDot(r.Context(), s, it))
+		return
+	}
+	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// itemReextractDot reloads the item preview dot after a failed re-extract.
+func itemReextractDot(ctx context.Context, s *Server, it *model.Item) itemPreviewDot {
+	return s.itemPreviewDot(ctx, it)
 }
 
 // pathID parses the {id}-shaped segment of admin routes where the id is

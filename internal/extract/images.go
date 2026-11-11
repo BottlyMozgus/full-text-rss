@@ -3,6 +3,7 @@ package extract
 import (
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -31,6 +32,13 @@ func restoreFigureImages(body []byte, pageURL, content string) string {
 	if err != nil {
 		return content
 	}
+	return restoreFigureImagesIn(doc, content)
+}
+
+// restoreFigureImagesIn is restoreFigureImages over an already parsed
+// document. The strip-selector path passes its stripped document, so images
+// inside stripped elements are not brought back. doc is only read.
+func restoreFigureImagesIn(doc *goquery.Document, content string) string {
 	frag, err := parseFragment(content)
 	if err != nil {
 		return content

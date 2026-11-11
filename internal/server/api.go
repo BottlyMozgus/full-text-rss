@@ -382,7 +382,7 @@ func (s *Server) apiCreateRule(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, msg)
 		return
 	}
-	id, err := s.st.UpsertSiteRule(r.Context(), rule)
+	id, err := s.st.CreateSiteRule(r.Context(), rule)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -435,29 +435,10 @@ func (s *Server) apiUpdateRule(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, msg)
 		return
 	}
-	// The store has no UpdateSiteRule: rules are unique by host and
-	// UpsertSiteRule is the update path. A host edit means a new row plus
-	// deleting the old one; same-host edits upsert in place.
-	if rule.Host != upd.Host {
-		upd.ID = 0
-		if _, err := s.st.UpsertSiteRule(r.Context(), upd); err != nil {
-			writeJSONError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		if err := s.st.DeleteSiteRule(r.Context(), rule.ID); err != nil {
-			writeJSONError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		saved, err := s.st.RuleForHost(r.Context(), upd.Host)
-		if err != nil || saved == nil {
-			writeJSONError(w, http.StatusInternalServerError, "updated rule not found")
-			return
-		}
-		writeJSON(w, http.StatusOK, toRuleJSON(saved))
-		return
-	}
+	// Rules are addressed by id; the host may change freely since hosts are
+	// no longer unique.
 	upd.ID = rule.ID
-	if _, err := s.st.UpsertSiteRule(r.Context(), upd); err != nil {
+	if err := s.st.UpdateSiteRule(r.Context(), upd); err != nil {
 		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

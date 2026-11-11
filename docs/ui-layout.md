@@ -44,6 +44,21 @@ Fields: Host* (text, e.g. "example.com"), Content selector (text, e.g.
 URL rewrite from / to (two text inputs, optional). Save / Cancel / Delete.
 Helper text: "Rules override Readability for the given host suffix."
 
+### /admin/rules/picker
+Entry points: "Pick rule" on the item preview page (`?item=<id>`), "Pick from
+an article" on /admin/rules, and a tip under the content selector on the new
+rule form. With no `url` it shows a URL field and an Open button.
+With a URL: header (h1 "Rule picker", host and article link, Back button);
+two columns below. Left: the sanitized article in a tall sandboxed iframe
+(min 70vh, sticky), with an error message under it if the frame fails to load.
+Right, top to bottom: current rule state (New / Exists badge), pick controls
+(Include / Exclude radios, Preview, Reset, "Select parent" for the last pick),
+selector list (badge, selector, match count, Find, Remove), preview pane
+(mode badge, character count, cleaned article, scrolls at 55vh) and the Save
+form (host, content selector, strip selectors, Save rule, Cancel).
+Click includes, Alt/Shift-click excludes. Below 900px the columns stack.
+Without JS the controls and preview are hidden and the Save form still works.
+
 ### /admin/ondemand
 One field: feed URL + Generate button → navigates to
 /on-demand?url=<encoded>, which streams the converted XML (Content-Type
