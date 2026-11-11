@@ -65,8 +65,13 @@ func TestFeedTokenServesRSS(t *testing.T) {
 	if it.Title != "Extracted article" {
 		t.Fatalf("item1 = %q", it.Title)
 	}
-	if enc := parsedEncoded(t, it); enc != "<p>full text body</p>" {
-		t.Errorf("item1 content:encoded = %q, want the HTML", enc)
+	// No <img> in the article, so the built-in placeholder leads the body.
+	wantEnc := `<p><img src="http://example.com/static/img/fallback.png" alt=""></p><p>full text body</p>`
+	if enc := parsedEncoded(t, it); enc != wantEnc {
+		t.Errorf("item1 content:encoded = %q, want %q", enc, wantEnc)
+	}
+	if it.Image == nil && len(it.Enclosures) == 0 {
+		t.Errorf("item1 has no enclosure/image for the placeholder")
 	}
 	if it.Description != "short summary" {
 		t.Errorf("item1 description = %q, want original summary", it.Description)

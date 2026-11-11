@@ -50,7 +50,7 @@ func (s *Server) handleFeedToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "feed unavailable", http.StatusInternalServerError)
 		return
 	}
-	body, _, err := s.renderStoredFeed(feed, items)
+	body, _, err := s.renderStoredFeed(feed, items, s.imageFallbacks(r, ""))
 	if err != nil {
 		http.Error(w, "feed unavailable", http.StatusInternalServerError)
 		return
@@ -74,18 +74,17 @@ func (s *Server) handleFeedToken(w http.ResponseWriter, r *http.Request) {
 // renderStoredFeed assembles the RSS output for a saved feed from cached
 // items. Extracted items carry their cleaned HTML; the rest fall back to
 // the original summary (feedio adds the fallback marker).
-func (s *Server) renderStoredFeed(feed *model.Feed, items []model.Item) ([]byte, time.Time, error) {
+func (s *Server) renderStoredFeed(feed *model.Feed, items []model.Item, imgs feedio.Output) ([]byte, time.Time, error) {
 	title := feed.Title
 	if title == "" {
 		title = "Saved feed " + strconv.FormatInt(feed.ID, 10)
 	}
-	out := feedio.Output{
-		Title:        title,
-		Link:         feed.SourceURL,
-		Description:  "Full-text feed",
-		LastModified: lastModifiedOf(feed),
-		Items:        make([]feedio.ItemContent, 0, len(items)),
-	}
+	out := imgs
+	out.Title = title
+	out.Link = feed.SourceURL
+	out.Description = "Full-text feed"
+	out.LastModified = lastModifiedOf(feed)
+	out.Items = make([]feedio.ItemContent, 0, len(items))
 	for i := range items {
 		it := &items[i]
 		gi := gofeedItemFromStored(it)
@@ -103,6 +102,31 @@ func (s *Server) renderStoredFeed(feed *model.Feed, items []model.Item) ([]byte,
 		return nil, time.Time{}, fmt.Errorf("render feed %d: %w", feed.ID, err)
 	}
 	return body, lastModifiedOf(feed), nil
+}
+
+// placeholderPath is the built-in fallback image served by the static handler.
+const placeholderPath = "/static/img/fallback.png"
+
+// imageFallbacks returns an Output carrying only the image fallback fields:
+// the channel image, the configured default, and the built-in placeholder
+// built from the request's base URL (empty when no base can be derived).
+func (s *Server) imageFallbacks(r *http.Request, feedImage string) feedio.Output {
+	o := feedio.Output{FeedImage: feedImage}
+	if s.cfg != nil {
+		o.DefaultImage = s.cfg.FallbackImage
+	}
+	if base := s.baseURL(r); base != "" {
+		o.PlaceholderImage = base + placeholderPath
+	}
+	return o
+}
+
+// feedImageURL returns the channel image URL of a parsed feed, if any.
+func feedImageURL(f *gofeed.Feed) string {
+	if f != nil && f.Image != nil {
+		return f.Image.URL
+	}
+	return ""
 }
 
 // gofeedItemFromStored rebuilds the gofeed item shape feedio serializes.
@@ -197,13 +221,12 @@ func (s *Server) handleOnDemand(w http.ResponseWriter, r *http.Request) {
 	if limit > onDemandItemLimit {
 		limit = onDemandItemLimit
 	}
-	out := feedio.Output{
-		Title:        firstNonEmpty(parsed.Title, "On-demand feed"),
-		Link:         firstNonEmpty(parsed.Link, rawURL),
-		Description:  "Full-text feed",
-		LastModified: time.Now(),
-		Items:        make([]feedio.ItemContent, 0, limit),
-	}
+	out := s.imageFallbacks(r, feedImageURL(parsed))
+	out.Title = firstNonEmpty(parsed.Title, "On-demand feed")
+	out.Link = firstNonEmpty(parsed.Link, rawURL)
+	out.Description = "Full-text feed"
+	out.LastModified = time.Now()
+	out.Items = make([]feedio.ItemContent, 0, limit)
 	for _, gi := range parsed.Items[:limit] {
 		out.Items = append(out.Items, s.onDemandItem(ctx, gi))
 	}

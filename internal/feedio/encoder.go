@@ -27,6 +27,12 @@ type Output struct {
 	Description  string
 	Items        []ItemContent
 	LastModified time.Time
+
+	// Image fallbacks for items whose content has no <img>, tried in order
+	// after the item's own image. Empty values are skipped.
+	FeedImage        string // channel image URL from the source feed
+	DefaultImage     string // configured default (FTRSS_FALLBACK_IMAGE)
+	PlaceholderImage string // built-in placeholder, absolute URL
 }
 
 const (
@@ -67,14 +73,22 @@ type rssChannel struct {
 }
 
 type rssItem struct {
-	Title       string     `xml:"title"`
-	Link        string     `xml:"link"`
-	GUID        *guidXML   `xml:"guid,omitempty"`
-	PubDate     string     `xml:"pubDate,omitempty"`
-	Author      string     `xml:"author,omitempty"`
-	Categories  []string   `xml:"category,omitempty"`
-	Description string     `xml:"description"`
-	Encoded     encodedXML `xml:"content:encoded"`
+	Title       string        `xml:"title"`
+	Link        string        `xml:"link"`
+	GUID        *guidXML      `xml:"guid,omitempty"`
+	PubDate     string        `xml:"pubDate,omitempty"`
+	Author      string        `xml:"author,omitempty"`
+	Categories  []string      `xml:"category,omitempty"`
+	Enclosure   *enclosureXML `xml:"enclosure,omitempty"`
+	Description string        `xml:"description"`
+	Encoded     encodedXML    `xml:"content:encoded"`
+}
+
+// enclosureXML is the RSS enclosure carrying the item's chosen image so
+// readers that show enclosure thumbnails can use it.
+type enclosureXML struct {
+	URL  string `xml:"url,attr"`
+	Type string `xml:"type,attr"`
 }
 
 // encodedXML emits its Raw content verbatim inside the element, letting us
@@ -103,10 +117,19 @@ func ToRSS(o Output) ([]byte, error) {
 	for _, ic := range o.Items {
 		it := ic.Item
 		enc := ic.HTML
+		marker := ""
 		if ic.Fallback {
 			// Extraction failed: serve the original summary, flagged for
 			// debugging, so the item still carries something readable.
-			enc = fallbackComment + firstNonEmpty(it.Description, ic.HTML)
+			marker = fallbackComment
+			enc = firstNonEmpty(it.Description, ic.HTML)
+		}
+		var enclosure *enclosureXML
+		if !hasImgTag(enc) {
+			if img, ok := pickImage(it, o); ok {
+				enc = imgParagraph(img.URL) + enc
+				enclosure = &enclosureXML{URL: img.URL, Type: img.Type}
+			}
 		}
 		items = append(items, rssItem{
 			Title:       it.Title,
@@ -115,8 +138,9 @@ func ToRSS(o Output) ([]byte, error) {
 			PubDate:     rssTime(timeOf(it.PublishedParsed, it.UpdatedParsed)),
 			Author:      authorName(it.Author),
 			Categories:  categories(it),
+			Enclosure:   enclosure,
 			Description: it.Description,
-			Encoded:     cdataEncoded(enc),
+			Encoded:     cdataEncoded(marker + enc),
 		})
 	}
 	var lastMod *time.Time

@@ -8,16 +8,17 @@ import (
 
 // Config holds all runtime configuration, loaded from environment variables.
 type Config struct {
-	Addr          string        // HTTP listen address
-	DataDir       string        // directory holding the SQLite file
-	AdminPassword string        // admin password (required unless AdminToken set)
-	AdminToken    string        // optional static API token instead of password
+	Addr           string        // HTTP listen address
+	DataDir        string        // directory holding the SQLite file
+	AdminPassword  string        // admin password (required unless AdminToken set)
+	AdminToken     string        // optional static API token instead of password
 	DefaultRefresh time.Duration // default feed refresh interval
 	FetchTimeout   time.Duration // per-article fetch timeout
 	FetchJitter    time.Duration // max jitter added between per-host fetches
 	FetchSpacing   time.Duration // minimum spacing between fetches to the same host
 	UserAgent      string
-	DBPath        string
+	FallbackImage  string // default image URL for items with no image of their own
+	DBPath         string
 }
 
 func env(key, def string) string {
@@ -48,6 +49,7 @@ func Load() (*Config, error) {
 		FetchJitter:    envDuration("FTRSS_FETCH_JITTER", 3*time.Second),
 		FetchSpacing:   envDuration("FTRSS_FETCH_SPACING", 2*time.Second),
 		UserAgent:      env("FTRSS_USER_AGENT", "rss-scraper/1.0 (+self-hosted; respectful fetcher)"),
+		FallbackImage:  os.Getenv("FTRSS_FALLBACK_IMAGE"),
 	}
 	if cfg.AdminPassword == "" && cfg.AdminToken == "" {
 		return nil, fmt.Errorf("FTRSS_ADMIN_PASSWORD or FTRSS_ADMIN_TOKEN must be set")
