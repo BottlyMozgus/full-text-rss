@@ -101,7 +101,9 @@ type feedFormDot struct {
 		SourceURL    string
 		Title        string
 		RefreshEvery time.Duration
+		MaxItems     int
 	}
+	MaxItemsCeiling int
 	FeedURL         string
 	IntervalOptions []struct {
 		Value time.Duration
@@ -111,11 +113,15 @@ type feedFormDot struct {
 
 // newFeedFormDot assembles the form dot for a feed (zero ID for new).
 func newFeedFormDot(f *model.Feed, baseURL string) feedFormDot {
-	dot := feedFormDot{IntervalOptions: intervalOpts()}
+	dot := feedFormDot{IntervalOptions: intervalOpts(), MaxItemsCeiling: model.MaxItemsCeiling}
 	dot.Feed.ID = f.ID
 	dot.Feed.SourceURL = f.SourceURL
 	dot.Feed.Title = f.Title
 	dot.Feed.RefreshEvery = f.RefreshEvery
+	dot.Feed.MaxItems = f.MaxItems
+	if dot.Feed.MaxItems < 1 {
+		dot.Feed.MaxItems = model.DefaultMaxItems // new feed
+	}
 	if f.ID != 0 && f.Token != "" {
 		dot.FeedURL = strings.TrimSuffix(baseURL, "/") + "/feed/" + f.Token + ".xml"
 	}
@@ -212,6 +218,7 @@ func (s *Server) handleFeedUpdate(w http.ResponseWriter, r *http.Request) {
 	f.SourceURL = updated.SourceURL
 	f.Title = updated.Title
 	f.RefreshEvery = updated.RefreshEvery
+	f.MaxItems = updated.MaxItems
 	if err := s.st.UpdateFeed(r.Context(), f); err != nil {
 		s.flashForm(w, "feeds", "feed_form_edit", friendlyError(err), newFeedFormDot(f, s.baseURL(r)))
 		return
@@ -250,7 +257,15 @@ func (s *Server) feedFromForm(r *http.Request) (*model.Feed, string) {
 	if err != nil || interval <= 0 {
 		return nil, fmt.Sprintf("Refresh interval %q is not a duration like 60m or 3h.", rawInterval)
 	}
-	return &model.Feed{SourceURL: sourceURL, Title: title, RefreshEvery: interval}, ""
+	// A form posted without the field (older page, script) gets the default.
+	maxItems := model.DefaultMaxItems
+	if raw := strings.TrimSpace(r.PostFormValue("max_items")); raw != "" {
+		maxItems, err = strconv.Atoi(raw)
+		if err != nil || maxItems < 1 || maxItems > model.MaxItemsCeiling {
+			return nil, fmt.Sprintf("Max items must be a whole number from 1 to %d.", model.MaxItemsCeiling)
+		}
+	}
+	return &model.Feed{SourceURL: sourceURL, Title: title, RefreshEvery: interval, MaxItems: maxItems}, ""
 }
 
 // itemRow is one row of feed_detail.html; State is the badge label and

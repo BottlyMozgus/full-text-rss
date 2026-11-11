@@ -42,7 +42,9 @@ feed_form.html
           SourceURL    string
           Title        string
           RefreshEvery time.Duration
+          MaxItems     int // entries served by the feed URL; prefilled 20 on new
       }
+      MaxItemsCeiling  int    // upper bound for the max_items input
       FeedURL          string // edit only: /feed/<token>.xml absolute URL
       IntervalOptions  []struct {
           Value time.Duration
@@ -92,7 +94,8 @@ ondemand.html
 
 Form field names the server handlers must read:
   login:   password
-  feed:    source_url, title, refresh_every (duration string like "60m")
+  feed:    source_url, title, refresh_every (duration string like "60m"),
+           max_items (integer 1..MaxItemsCeiling; missing means 20)
   rule:    host, content_selector, strip_selectors (newline-separated),
            rewrite_from, rewrite_to
   ondemand: url (GET /on-demand)

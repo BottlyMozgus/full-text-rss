@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+// Bounds for Feed.MaxItems. DefaultMaxItems must match the column default
+// in store/migrations/002_feed_max_items.sql.
+const (
+	DefaultMaxItems = 20
+	MaxItemsCeiling = 500
+)
+
 // Feed is a saved feed configuration.
 type Feed struct {
 	ID             int64
@@ -14,6 +21,7 @@ type Feed struct {
 	SourceURL      string // RSS/Atom feed to convert
 	Title          string // optional display title
 	RefreshEvery   time.Duration
+	MaxItems       int    // entries served at /feed/<token>.xml; 0 on write means DefaultMaxItems
 	LastRefresh    sql.NullTime
 	LastStatus     string // "ok" | "error"
 	LastError      string

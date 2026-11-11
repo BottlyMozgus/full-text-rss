@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ type feedJSON struct {
 	SourceURL    string     `json:"source_url"`
 	Title        string     `json:"title"`
 	RefreshEvery int64      `json:"refresh_every_seconds"`
+	MaxItems     int        `json:"max_items"`
 	LastRefresh  *time.Time `json:"last_refresh,omitempty"`
 	LastStatus   string     `json:"last_status"`
 	LastError    string     `json:"last_error,omitempty"`
@@ -67,6 +69,7 @@ func toFeedJSON(f *model.Feed, base string) feedJSON {
 		SourceURL:    f.SourceURL,
 		Title:        f.Title,
 		RefreshEvery: int64(f.RefreshEvery / time.Second),
+		MaxItems:     f.MaxItems,
 		LastStatus:   f.LastStatus,
 		LastError:    f.LastError,
 		CreatedAt:    f.CreatedAt,
@@ -134,11 +137,13 @@ const defaultRefreshSeconds int64 = 3600
 
 // feedInput is the accepted create/update payload. RefreshEverySeconds
 // defaults to 60 minutes when omitted or zero; negative values are rejected.
-// Title optional.
+// MaxItems omitted or zero means "not given": create uses
+// model.DefaultMaxItems and update keeps the stored value. Title optional.
 type feedInput struct {
 	SourceURL           string `json:"source_url"`
 	Title               string `json:"title"`
 	RefreshEverySeconds int64  `json:"refresh_every_seconds"`
+	MaxItems            int    `json:"max_items"`
 }
 
 // applyFeedInput validates input into a model.Feed; "" return is an error
@@ -153,10 +158,14 @@ func applyFeedInput(in feedInput) (*model.Feed, string) {
 	if in.RefreshEverySeconds == 0 {
 		in.RefreshEverySeconds = defaultRefreshSeconds
 	}
+	if in.MaxItems < 0 || in.MaxItems > model.MaxItemsCeiling {
+		return nil, fmt.Sprintf("max_items must be between 1 and %d", model.MaxItemsCeiling)
+	}
 	return &model.Feed{
 		SourceURL:    strings.TrimSpace(in.SourceURL),
 		Title:        strings.TrimSpace(in.Title),
 		RefreshEvery: time.Duration(in.RefreshEverySeconds) * time.Second,
+		MaxItems:     in.MaxItems,
 	}, ""
 }
 
@@ -228,6 +237,9 @@ func (s *Server) apiUpdateFeed(w http.ResponseWriter, r *http.Request) {
 	f.SourceURL = upd.SourceURL
 	f.Title = upd.Title
 	f.RefreshEvery = upd.RefreshEvery
+	if upd.MaxItems != 0 {
+		f.MaxItems = upd.MaxItems
+	}
 	if err := s.st.UpdateFeed(r.Context(), f); err != nil {
 		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return

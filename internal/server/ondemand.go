@@ -45,7 +45,7 @@ func (s *Server) handleFeedToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := s.st.ItemsForFeed(r.Context(), feed.ID, 100)
+	items, err := s.st.ItemsForFeed(r.Context(), feed.ID, feed.MaxItems)
 	if err != nil {
 		http.Error(w, "feed unavailable", http.StatusInternalServerError)
 		return
