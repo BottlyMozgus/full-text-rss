@@ -19,8 +19,14 @@ type Store struct {
 }
 
 // Open opens (creating if needed) the database at path and applies migrations.
+// _time_format=sqlite makes time.Time binds use an ISO layout the driver can
+// always parse back; the default serializes via time.Time.String(), which
+// round-trips only when the time's zone has a resolvable name, and feed dates
+// parsed from numeric UTC offsets can carry an empty zone name (see migration
+// 004). _timezone=UTC additionally converts every time in and out of the
+// driver to UTC, so parsed offsets never surface as unnamed zones.
 func Open(path string) (*Store, error) {
-	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)")
+	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_time_format=sqlite&_timezone=UTC")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}

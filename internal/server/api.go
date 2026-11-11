@@ -75,7 +75,7 @@ func toFeedJSON(f *model.Feed, base string) feedJSON {
 		CreatedAt:    f.CreatedAt,
 	}
 	if f.LastRefresh.Valid {
-		t := f.LastRefresh.Time
+		t := f.LastRefresh.Time.UTC()
 		j.LastRefresh = &t
 	}
 	if base != "" && f.Token != "" {
