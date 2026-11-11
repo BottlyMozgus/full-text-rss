@@ -11,7 +11,7 @@ Full-Text RSS, but self-hosted and free.
 - **Saved feeds** with unguessable token URLs: `/feed/<token>.xml` — subscribe from any RSS reader, no login needed for readers.
 - **Per-feed item limit**: each saved feed returns its newest 20 entries by default; change it per feed (1 to 500).
 - **On-demand conversion**: `/on-demand?url=<feed-url>` converts any feed on the fly.
-- **Per-site rules**: content selector, strip selectors, URL rewrite; rules override Readability.
+- **Per-site rules**: content selector, strip selectors, URL rewrite; rules override Readability. Multiple rules per host are allowed and compose (strip selectors union, first content selector wins). Multiple rules per host are allowed and compose: strip selectors union, first content selector and first URL rewrite win.
 - **Aggressive HTML cleanup**: no scripts, iframes, classes, or inline styles — safe minimal HTML.
 - **Polite fetching**: per-host rate limiting with jitter, so source sites don't ban your IP.
 - **Resilient**: extraction failures fall back to the original summary; a bad article never breaks a feed.
