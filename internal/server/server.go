@@ -175,6 +175,7 @@ func (s *Server) Routes() http.Handler {
 	mux.Handle("POST /admin/feeds/{id}/delete", s.auth(s.handleFeedDelete))
 	mux.Handle("POST /admin/feeds/{id}/refresh", s.auth(s.handleFeedRefresh))
 	mux.Handle("GET /admin/feeds/{id}/items/{itemID}", s.auth(s.page(s.handleItemPreview, "feeds", "item_preview")))
+	mux.Handle("POST /admin/feeds/{id}/items/{itemID}/reextract", s.auth(s.handleItemReextract))
 	mux.Handle("GET /admin/rules", s.auth(s.page(s.handleRulesList, "rules", "rules_list")))
 	mux.Handle("GET /admin/rules/new", s.auth(s.page(s.handleRuleFormNew, "rules", "rule_form_new")))
 	mux.Handle("POST /admin/rules/new", s.auth(s.handleRuleCreate))

@@ -69,15 +69,19 @@ feed_detail.html
   }
 
 item_preview.html
-  "item_preview"  D: struct {
+  "item_preview"  D: itemPreviewDot {
       Feed struct { ID int64; Title string }
-      Item struct {
+      Item itemPreviewItem {
+          ID          int64  // also the reextract form target
           Title       string
-          URL         string
+          URL         string // when set, the "Re-extract" button renders
           Author      string
           ContentHTML string // rendered raw; also shown escaped in code pane
       }
   }
+  The "Re-extract" button posts to
+  /admin/feeds/{feedID}/items/{itemID}/reextract, which refetches the
+  article with the host's current rules and re-renders this page.
 
 rules_list.html
   "rules_list"  D: struct {

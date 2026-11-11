@@ -211,6 +211,19 @@ curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "actual content lives in this div" ||
 curl -sf "$BASE/feed/$TOKEN.xml" | grep -q "Site chrome" && fail "second rule's strip selector not applied"
 echo "rule picker OK"
 
+echo "== per-item re-extract =="
+# Re-extract the rule-extracted item and confirm the rule content still
+# applies end to end (the button refetches with current rules).
+ITEMID=$(curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status" | jq -r '.items[] | select(.guid == "fixture-b") | .id')
+[ -n "$ITEMID" ] && [ "$ITEMID" != "null" ] || fail "no fixture-b item to reextract"
+curl -sf -b "$COOKIES" -o /dev/null -w "%{http_code}" -X POST \
+  "$BASE/admin/feeds/$FEEDID/items/$ITEMID/reextract" | grep -q 303 || fail "item reextract expected 303"
+curl -sf -b "$COOKIES" "$BASE/admin/feeds/$FEEDID/items/$ITEMID" > "$WORK/itempage.html" || fail "item preview after reextract"
+grep -q "Re-extract" "$WORK/itempage.html" || fail "reextract button missing from item preview"
+grep -q "actual content lives in this div" "$WORK/itempage.html" || fail "reextracted item lost rule content"
+curl -sf -b "$COOKIES" "$BASE/api/feeds/$FEEDID/status" | jq -e --arg id "$ITEMID" '.items[] | select(.id == ($id | tonumber)) | .state == "extracted"' >/dev/null || fail "reextracted item state not extracted"
+echo "per-item re-extract OK"
+
 echo "== on-demand endpoint =="
 curl -sf -b "$COOKIES" "$BASE/on-demand?url=$(printf '%s' "$FIXTURE_BASE/feed.xml" | jq -sRr @uri)" > "$WORK/ondemand.xml" || fail "on-demand request"
 grep -q "actual content lives in this div" "$WORK/ondemand.xml" || fail "on-demand rule content missing"

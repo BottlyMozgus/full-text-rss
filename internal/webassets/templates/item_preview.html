@@ -6,6 +6,14 @@
     {{if .Item.URL}}<a href="{{.Item.URL}}" rel="noreferrer">{{.Item.URL}}</a>{{end}}
     {{if .Item.Author}} &middot; {{.Item.Author}}{{end}}
   </p>
+  {{if .Item.URL}}
+  <div class="btn-row">
+    <form method="post" action="/admin/feeds/{{.Feed.ID}}/items/{{.Item.ID}}/reextract" class="inline-form">
+      <button type="submit" class="btn btn-sm">Re-extract</button>
+    </form>
+    <span class="muted small">Refetches this article with the site's current rules.</span>
+  </div>
+  {{end}}
 </div>
 
 <div class="preview-grid">
